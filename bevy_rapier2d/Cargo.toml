@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = [ "physics", "dynamics", "rigid", "real-time", "joints" ]
 license = "Apache-2.0"
 edition = "2018"
-
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -29,12 +29,13 @@ serde-serialize = [ "rapier2d/serde-serialize" ]
 enhanced-determinism = [ "rapier2d/enhanced-determinism" ]
 
 [dependencies]
-bevy = { version = "0.5", default-features = false }
+bevy = { path = "../../bevy" }
+#bevy = { version = "0.5", default-features = false }
 nalgebra = { version = "0.29", features = [ "convert-glam013" ] }
 # Don't enable the default features because we don't need the ColliderSet/RigidBodySet
 rapier2d = { version = "0.11", default-features = false, features = [ "dim2", "f32" ] }
 
 [dev-dependencies]
-bevy_wgpu = "0.5"
-bevy_winit = { version = "0.5", features = [ "x11" ] }
+#bevy_wgpu = "0.5"
+#bevy_winit = { version = "0.5", features = [ "x11" ] }
 oorandom = "11"

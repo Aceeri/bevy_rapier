@@ -63,9 +63,8 @@ pub type RigidBodyChangesQueryFilter = (
     )>,
 );
 
-pub type RigidBodyComponentsQuerySet<'world, 'state, 'a> = QuerySet<
+pub type RigidBodyComponentsQuerySet<'world, 'a> = QuerySet<
     'world,
-    'state,
     (
         // Components query
         QueryState<RigidBodyComponentsQueryPayload<'a>>,
@@ -74,8 +73,8 @@ pub type RigidBodyComponentsQuerySet<'world, 'state, 'a> = QuerySet<
     ),
 >;
 
-pub struct RigidBodyComponentsSet<'world, 'state, 'a>(
-    pub Query<'world, 'state, RigidBodyComponentsQueryPayload<'a>>,
+pub struct RigidBodyComponentsSet<'world, 'a>(
+    pub Query<'world, RigidBodyComponentsQueryPayload<'a>>,
 );
 
 impl_component_set_mut!(RigidBodyComponentsSet, RigidBodyPosition, |data| &*data.1);

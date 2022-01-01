@@ -17,9 +17,8 @@ impl IntoEntity for ColliderHandle {
     }
 }
 
-pub type QueryPipelineColliderComponentsQuery<'world, 'state, 'a> = Query<
+pub type QueryPipelineColliderComponentsQuery<'world, 'a> = Query<
     'world,
-    'state,
     (
         Entity,
         &'a ColliderPosition,
@@ -28,8 +27,8 @@ pub type QueryPipelineColliderComponentsQuery<'world, 'state, 'a> = Query<
     ),
 >;
 
-pub struct QueryPipelineColliderComponentsSet<'world, 'state, 'a, 'c>(
-    pub &'c QueryPipelineColliderComponentsQuery<'world, 'state, 'a>,
+pub struct QueryPipelineColliderComponentsSet<'world, 'a, 'c>(
+    pub &'c QueryPipelineColliderComponentsQuery<'world, 'a>,
 );
 
 impl_component_set!(
@@ -44,8 +43,8 @@ impl_component_set!(QueryPipelineColliderComponentsSet, ColliderFlags, |data| {
     data.3
 });
 
-pub struct ColliderComponentsSet<'world, 'state, 'a>(
-    pub Query<'world, 'state, ColliderComponentsQueryPayload<'a>>,
+pub struct ColliderComponentsSet<'world, 'a>(
+    pub Query<'world, ColliderComponentsQueryPayload<'a>>,
 );
 
 pub type ColliderComponentsQueryPayload<'a> = (
@@ -85,9 +84,8 @@ pub type ColliderChangesQueryFilter = (
     )>,
 );
 
-pub type ColliderComponentsQuerySet<'world, 'state, 'a> = QuerySet<
+pub type ColliderComponentsQuerySet<'world, 'a> = QuerySet<
     'world,
-    'state,
     (
         // Components query
         QueryState<ColliderComponentsQueryPayload<'a>>,

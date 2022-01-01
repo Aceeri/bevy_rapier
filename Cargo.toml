@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = ["bevy_rapier2d", "bevy_rapier3d"]
 
 [profile.release]

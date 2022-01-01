@@ -302,9 +302,9 @@ pub trait PhysicsHooksWithQuery<UserData: WorldQuery>: Send + Sync {
 
 impl<T, UserData> PhysicsHooksWithQuery<UserData> for T
 where
-    T: for<'world_a, 'state_a, 'a, 'world_b, 'state_b, 'b> PhysicsHooks<
-            RigidBodyComponentsSet<'world_a, 'state_a, 'a>,
-            ColliderComponentsSet<'world_b, 'state_b, 'b>,
+    T: for<'world_a, 'a, 'world_b, 'b> PhysicsHooks<
+            RigidBodyComponentsSet<'world_a, 'a>,
+            ColliderComponentsSet<'world_b, 'b>,
         > + Send
         + Sync,
     UserData: WorldQuery,
@@ -330,8 +330,8 @@ pub struct PhysicsHooksWithQueryObject<UserData: WorldQuery>(
     pub Box<dyn PhysicsHooksWithQuery<UserData>>,
 );
 
-pub(crate) struct PhysicsHooksWithQueryInstance<'world, 'state, 'b, UserData: WorldQuery> {
-    pub user_data: Query<'world, 'state, UserData>,
+pub(crate) struct PhysicsHooksWithQueryInstance<'world, 'b, UserData: WorldQuery> {
+    pub user_data: Query<'world, UserData>,
     pub hooks: &'b dyn PhysicsHooksWithQuery<UserData>,
 }
 
