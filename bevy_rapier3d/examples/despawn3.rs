@@ -3,7 +3,6 @@ extern crate rapier3d as rapier; // For the debug UI.
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use bevy::render::pass::ClearColor;
 use rapier3d::pipeline::PhysicsPipeline;
 use ui::DebugUiPlugin;
 
@@ -25,8 +24,6 @@ fn main() {
         .insert_resource(Msaa::default())
         .insert_resource(DespawnResource::default())
         .add_plugins(DefaultPlugins)
-        .add_plugin(bevy_winit::WinitPlugin::default())
-        .add_plugin(bevy_wgpu::WgpuPlugin::default())
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierRenderPlugin)
         .add_plugin(DebugUiPlugin)

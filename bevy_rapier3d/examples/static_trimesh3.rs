@@ -5,10 +5,10 @@ use std::f32::consts::TAU;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use bevy::render::pass::ClearColor;
 use rapier::geometry::{ColliderMaterial, ColliderShape};
 use rapier3d::dynamics::IntegrationParameters;
 use rapier3d::pipeline::PhysicsPipeline;
+use bevy_rapier3d::physics::wrapper::Comp;
 use ui::DebugUiPlugin;
 
 #[path = "../../src_debug_ui/mod.rs"]
@@ -23,8 +23,6 @@ fn main() {
         )))
         .insert_resource(Msaa::default())
         .add_plugins(DefaultPlugins)
-        .add_plugin(bevy_winit::WinitPlugin::default())
-        .add_plugin(bevy_wgpu::WgpuPlugin::default())
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierRenderPlugin)
         .add_plugin(DebugUiPlugin)
@@ -85,7 +83,7 @@ pub fn setup_physics(mut commands: Commands) {
         indices.push([2 * i + 2, 2 * i + 1, 2 * i + 3]);
     }
     let collider = ColliderBundle {
-        shape: ColliderShape::trimesh(vertices, indices),
+        shape: Comp(ColliderShape::trimesh(vertices, indices)),
         ..Default::default()
     };
     commands
@@ -126,13 +124,13 @@ pub fn setup_physics(mut commands: Commands) {
     // Position so ramp connects smoothly
     // to one edge of the lip of the bowl.
     let collider = ColliderBundle {
-        shape: ColliderShape::trimesh(vertices, indices),
-        position: [
+        shape: Comp(ColliderShape::trimesh(vertices, indices)),
+        position: Comp([
             -bowl_size.x / 2.0,
             -bowl_size.y / 2.0,
             bowl_size.z / 2.0 - ramp_size.z / 2.0,
         ]
-        .into(),
+        .into()),
         ..Default::default()
     };
     commands
@@ -180,12 +178,12 @@ fn ball_spawner(
     let ramp_size = ramp_size();
     let rad = 0.3;
     let rigid_body = RigidBodyBundle {
-        position: [ramp_size.x * 0.9, ramp_size.y / 2.0 + rad * 3.0, 0.0].into(),
+        position: Comp([ramp_size.x * 0.9, ramp_size.y / 2.0 + rad * 3.0, 0.0].into()),
         ..Default::default()
     };
     let collider = ColliderBundle {
-        shape: ColliderShape::ball(rad),
-        material: ColliderMaterial::new(1.0, 0.5),
+        shape: Comp(ColliderShape::ball(rad)),
+        material: Comp(ColliderMaterial::new(1.0, 0.5)),
         ..Default::default()
     };
 
