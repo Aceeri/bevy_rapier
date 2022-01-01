@@ -1,16 +1,12 @@
 use super::{IntoEntity, IntoHandle};
-use crate::physics::wrapper::{
-    RigidBodyActivation, RigidBodyCcd, RigidBodyChanges, RigidBodyDamping,
-    RigidBodyDominance, RigidBodyForces, RigidBodyIds, RigidBodyMassProps,
-    RigidBodyPosition, RigidBodyType, RigidBodyVelocity,RigidBodyColliders
-};
+use crate::physics::wrapper::{self, *};
 use bevy::prelude::*;
 use rapier::data::{ComponentSet, ComponentSetMut, ComponentSetOption, Index};
-use rapier::{dynamics};
+use rapier::dynamics;
 impl IntoHandle<dynamics::RigidBodyHandle> for Entity {
     #[inline]
     fn handle(self) -> dynamics::RigidBodyHandle {
-      dynamics::RigidBodyHandle::from_raw_parts(self.id(), self.generation())
+        dynamics::RigidBodyHandle::from_raw_parts(self.id(), self.generation())
     }
 }
 
@@ -78,51 +74,110 @@ pub struct RigidBodyComponentsSet<'world, 'state, 'a>(
     pub Query<'world, 'state, RigidBodyComponentsQueryPayload<'a>>,
 );
 
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyPosition,RigidBodyPosition, |data| &*data.1);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyVelocity,RigidBodyVelocity, |data| &*data.2);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyMassProps,RigidBodyMassProps, |data| &*data.3);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyIds,RigidBodyIds, |data| &*data.4);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyForces,RigidBodyForces, |data| &*data.5);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyCcd,RigidBodyCcd, |data| &*data.6);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyColliders,RigidBodyColliders, |data| &*data.7);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyDamping,RigidBodyDamping, |data| &*data.8);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyDominance,RigidBodyDominance, |data| &*data.9);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyType,RigidBodyType, |data| &*data.10);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyChanges,RigidBodyChanges, |data| &*data.11);
-impl_component_set_mut!(RigidBodyComponentsSet, dynamics::RigidBodyActivation,RigidBodyActivation, |data| &*data
-    .12);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyPosition,
+    wrapper::RigidBodyPosition,
+    |data| &*data.1
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyVelocity,
+    wrapper::RigidBodyVelocity,
+    |data| &*data.2
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyMassProps,
+    wrapper::RigidBodyMassProps,
+    |data| &*data.3
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyIds,
+    wrapper::RigidBodyIds,
+    |data| &*data.4
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyForces,
+    wrapper::RigidBodyForces,
+    |data| &*data.5
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyCcd,
+    wrapper::RigidBodyCcd,
+    |data| &*data.6
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyColliders,
+    wrapper::RigidBodyColliders,
+    |data| &*data.7
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyDamping,
+    wrapper::RigidBodyDamping,
+    |data| &*data.8
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyDominance,
+    wrapper::RigidBodyDominance,
+    |data| &*data.9
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyType,
+    wrapper::RigidBodyType,
+    |data| &*data.10
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyChanges,
+    wrapper::RigidBodyChanges,
+    |data| &*data.11
+);
+impl_component_set_mut!(
+    RigidBodyComponentsSet,
+    dynamics::RigidBodyActivation,
+    wrapper::RigidBodyActivation,
+    |data| &*data.12
+);
 
 #[derive(Bundle)]
 pub struct RigidBodyBundle {
-    pub body_type: RigidBodyType,
-    pub position: RigidBodyPosition,
-    pub velocity: RigidBodyVelocity,
-    pub mass_properties: RigidBodyMassProps,
-    pub forces: RigidBodyForces,
-    pub activation: RigidBodyActivation,
-    pub damping: RigidBodyDamping,
-    pub dominance: RigidBodyDominance,
-    pub ccd: RigidBodyCcd,
-    pub changes: RigidBodyChanges,
-    pub ids: RigidBodyIds,
-    pub colliders: RigidBodyColliders,
+    pub body_type: wrapper::RigidBodyType,
+    pub position: wrapper::RigidBodyPosition,
+    pub velocity: wrapper::RigidBodyVelocity,
+    pub mass_properties: wrapper::RigidBodyMassProps,
+    pub forces: wrapper::RigidBodyForces,
+    pub activation: wrapper::RigidBodyActivation,
+    pub damping: wrapper::RigidBodyDamping,
+    pub dominance: wrapper::RigidBodyDominance,
+    pub ccd: wrapper::RigidBodyCcd,
+    pub changes: wrapper::RigidBodyChanges,
+    pub ids: wrapper::RigidBodyIds,
+    pub colliders: wrapper::RigidBodyColliders,
 }
 
 impl Default for RigidBodyBundle {
     fn default() -> Self {
         Self {
-            body_type: RigidBodyType(rapier2d::prelude::RigidBodyType::Dynamic),
-            position: RigidBodyPosition::default(),
-            velocity: RigidBodyVelocity::default(),
-            mass_properties: RigidBodyMassProps::default(),
-            forces: RigidBodyForces::default(),
-            activation: RigidBodyActivation::default(),
-            damping: RigidBodyDamping::default(),
-            dominance: RigidBodyDominance::default(),
-            ccd: RigidBodyCcd::default(),
-            changes: RigidBodyChanges::default(),
-            ids: RigidBodyIds::default(),
-            colliders: RigidBodyColliders::default(),
+            body_type: wrapper::Comp(rapier::prelude::RigidBodyType::Dynamic),
+            position: wrapper::RigidBodyPosition::default(),
+            velocity: wrapper::RigidBodyVelocity::default(),
+            mass_properties: wrapper::RigidBodyMassProps::default(),
+            forces: wrapper::RigidBodyForces::default(),
+            activation: wrapper::RigidBodyActivation::default(),
+            damping: wrapper::RigidBodyDamping::default(),
+            dominance: wrapper::RigidBodyDominance::default(),
+            ccd: wrapper::RigidBodyCcd::default(),
+            changes: wrapper::RigidBodyChanges::default(),
+            ids: wrapper::RigidBodyIds::default(),
+            colliders: wrapper::RigidBodyColliders::default(),
         }
     }
 }

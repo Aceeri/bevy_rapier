@@ -7,13 +7,9 @@ use crate::physics::{
     SimulationToRenderTime, TimestepMode,
 };
 
+use crate::physics::wrapper::{self, *};
 use crate::prelude::{ContactEvent, IntersectionEvent};
 use crate::rapier::data::ComponentSetOption;
-use crate::physics::wrapper::{
-    RigidBodyCcd, RigidBodyChanges, RigidBodyIds, RigidBodyMassProps,
-    RigidBodyPosition,ColliderBroadPhaseData, ColliderChanges, ColliderMassProps, ColliderParent, ColliderPosition,
-    ColliderShape,RigidBodyColliders
-};
 
 use crate::rapier::pipeline::QueryPipeline;
 use bevy::ecs::query::{QueryState, WorldQuery};
@@ -22,8 +18,8 @@ use rapier::dynamics::{CCDSolver, IntegrationParameters, IslandManager, JointSet
 use rapier::geometry::{BroadPhase, NarrowPhase};
 use rapier::math::Isometry;
 use rapier::pipeline::PhysicsPipeline;
+use rapier::{dynamics, geometry};
 use std::sync::RwLock;
-use rapier::{dynamics,geometry};
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemLabel)]
 pub enum PhysicsSystems {
     AttachBodiesAndColliders,
@@ -63,7 +59,7 @@ pub fn attach_bodies_and_colliders_system(
             }
         }
 
-        let co_parent = ColliderParent(geometry::ColliderParent{
+        let co_parent = Comp(geometry::ColliderParent {
             pos_wrt_parent: *co_pos.0,
             handle: body_entity.handle(),
         });
@@ -232,10 +228,7 @@ pub fn step_world_system<UserData: 'static + WorldQuery>(
         contact_events: RwLock::new(contact_events),
     };
     modifs_tracker.detect_removals(removed_bodies, removed_colliders, removed_joints);
-    modifs_tracker.detect_modifications(
-        bodies_query.q1(),
-        colliders_query.q1(),
-    );
+    modifs_tracker.detect_modifications(bodies_query.q1(), colliders_query.q1());
 
     let mut rigid_body_components_set = RigidBodyComponentsSet(bodies_query.q0());
     let mut collider_components_set = ColliderComponentsSet(colliders_query.q0());

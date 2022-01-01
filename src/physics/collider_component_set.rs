@@ -1,9 +1,8 @@
 use super::{IntoEntity, IntoHandle};
 use bevy::prelude::*;
 use rapier::data::{ComponentSet, ComponentSetMut, ComponentSetOption, Index};
-use crate::physics::wrapper::{ColliderMaterial,ColliderFlags,ColliderParent,ColliderPosition,ColliderBroadPhaseData,
-  ColliderMassProps,ColliderChanges,ColliderShape,ColliderType};
-use rapier::{geometry};
+use crate::physics::wrapper::{self, *};
+use rapier::geometry;
 impl IntoHandle<geometry::ColliderHandle> for Entity {
     #[inline]
     fn handle(self) -> geometry::ColliderHandle {
@@ -97,32 +96,32 @@ pub type ColliderComponentsQuerySet<'world, 'state, 'a> = QuerySet<
     ),
 >;
 
-impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderChanges,ColliderChanges, |data| &*data.1);
-impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderPosition,ColliderPosition, |data| &*data.2);
-impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderBroadPhaseData, ColliderBroadPhaseData,|d| &*d.3);
-impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderShape,ColliderShape, |data| &*data.4);
-impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderType,ColliderType, |data| &*data.5);
-impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderMaterial,ColliderMaterial, |data| &*data.6);
-impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderFlags,ColliderFlags,  |data| &*data.7);
-impl_component_set_option!(ColliderComponentsSet, geometry::ColliderParent,ColliderParent);
+impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderChanges, wrapper::ColliderChanges, |data| &**data.1);
+impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderPosition, wrapper::ColliderPosition, |data| &*data.2);
+impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderBroadPhaseData, wrapper::ColliderBroadPhaseData,|d| &*d.3);
+impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderShape, wrapper::ColliderShape, |data| &*data.4);
+impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderType, wrapper::ColliderType, |data| &*data.5);
+impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderMaterial, wrapper::ColliderMaterial, |data| &*data.6);
+impl_component_set_mut!(ColliderComponentsSet, geometry::ColliderFlags, wrapper::ColliderFlags, |data| &*data.7);
+impl_component_set_option!(ColliderComponentsSet, geometry::ColliderParent, wrapper::ColliderParent);
 
 #[derive(Bundle)]
 pub struct ColliderBundle {
-    pub collider_type: ColliderType,
-    pub shape: ColliderShape,
-    pub position: ColliderPosition,
-    pub material: ColliderMaterial,
-    pub flags: ColliderFlags,
-    pub mass_properties: ColliderMassProps,
-    pub changes: ColliderChanges,
-    pub bf_data: ColliderBroadPhaseData,
+    pub collider_type: wrapper::ColliderType,
+    pub shape: wrapper::ColliderShape,
+    pub position: wrapper::ColliderPosition,
+    pub material: wrapper::ColliderMaterial,
+    pub flags: wrapper::ColliderFlags,
+    pub mass_properties: wrapper::ColliderMassProps,
+    pub changes: wrapper::ColliderChanges,
+    pub bf_data: wrapper::ColliderBroadPhaseData,
 }
 
 impl Default for ColliderBundle {
     fn default() -> Self {
         Self {
-            collider_type: ColliderType(geometry::ColliderType::Solid),
-            shape: ColliderShape(geometry::ColliderShape::ball(0.5)),
+            collider_type: wrapper::Comp(geometry::ColliderType::Solid),
+            shape: wrapper::Comp(geometry::ColliderShape::ball(0.5)),
             position: ColliderPosition::default(),
             material: ColliderMaterial::default(),
             flags: ColliderFlags::default(),

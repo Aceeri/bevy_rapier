@@ -4,15 +4,17 @@ use crate::physics::{
     RigidBodyChangesQueryPayload, RigidBodyComponentsSet,
 };
 //use crate::rapier::prelude::*;
-use crate::physics::wrapper::{RigidBodyChanges,ColliderParent,ColliderChanges};
+use crate::physics::wrapper::{ColliderChanges, ColliderParent, RigidBodyChanges};
 use bevy::ecs::query::WorldQuery;
 use bevy::prelude::*;
 use rapier::data::{ComponentSet, ComponentSetMut};
+use rapier::prelude::{
+    ContactEvent, ContactModificationContext, ContactPair, EventHandler, IntersectionEvent,
+    IslandManager, JointHandle, JointSet, PairFilterContext, PhysicsHooks, SolverFlags, Vector,
+};
+use rapier::{dynamics, geometry};
 use std::collections::HashMap;
 use std::sync::RwLock;
-use rapier2d::prelude::{Vector,ContactEvent,IntersectionEvent,EventHandler,JointHandle,ContactPair,
-  IslandManager,JointSet,PairFilterContext,SolverFlags,ContactModificationContext,PhysicsHooks};
-use rapier2d::{dynamics,geometry};
 /// The different ways of adjusting the timestep length.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TimestepMode {
@@ -222,7 +224,8 @@ impl ModificationTracker {
     ) where
         Bodies: ComponentSetMut<dynamics::RigidBodyChanges>
             + ComponentSetMut<dynamics::RigidBodyColliders>
-            + ComponentSetMut<dynamics::RigidBodyActivation> // Needed for joint removal.
+            + ComponentSetMut<dynamics::RigidBodyActivation>
+            // Needed for joint removal.
             + ComponentSetMut<dynamics::RigidBodyIds> // Needed for joint removal.
             + ComponentSet<dynamics::RigidBodyType>, // Needed for joint removal.
     {
@@ -253,9 +256,12 @@ impl ModificationTracker {
                     }
 
                     // Detach the collider from the rigid-body.
-                    bodies.map_mut_internal(parent.0, |rb_colliders: &mut dynamics::RigidBodyColliders| {
-                        rb_colliders.detach_collider(&mut rb_changes, *removed_collider);
-                    });
+                    bodies.map_mut_internal(
+                        parent.0,
+                        |rb_colliders: &mut dynamics::RigidBodyColliders| {
+                            rb_colliders.detach_collider(&mut rb_changes, *removed_collider);
+                        },
+                    );
 
                     // Set the new rigid-body changes flags.
                     bodies.set_internal(parent.0, rb_changes);

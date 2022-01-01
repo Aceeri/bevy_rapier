@@ -4,11 +4,12 @@ pub use self::plugins::*;
 pub use self::resources::*;
 pub use self::rigid_body_component_set::*;
 pub use self::systems::*;
+
 pub mod wrapper;
 use crate::rapier::data::{ComponentSet, ComponentSetMut, ComponentSetOption, Index};
 //use crate::rapier::prelude::*;
-use rapier2d::prelude::{JointHandle};
 use bevy::prelude::{Entity, Query};
+use rapier::prelude::JointHandle;
 
 pub trait IntoHandle<H> {
     fn handle(self) -> H;
@@ -53,7 +54,7 @@ pub trait BundleBuilder {
 }
 
 macro_rules! impl_component_set_mut(
-    ($ComponentsSet: ident, $T: ty,$NT:ty, |$data: ident| $data_expr: expr) => {
+    ($ComponentsSet: ident, $T: ty, $NT:ty, |$data: ident| $data_expr: expr) => {
         impl<'world, 'state, 'a> ComponentSetOption<$T> for $ComponentsSet<'world, 'state, 'a> {
             #[inline(always)]
             fn get(&self, handle: Index) -> Option<&$T> {
@@ -77,7 +78,7 @@ macro_rules! impl_component_set_mut(
                 unsafe{
                   self.0.iter_unsafe().for_each(|$data| f($data.0.handle(), $data_expr))
                 }
-                
+
             }
         }
 
@@ -147,12 +148,14 @@ macro_rules! impl_component_set_option(
     }
 );
 
-pub type ComponentSetQueryMut<'world, 'state, 'a, T> =
-    Query<'world, 'state, (Entity, &'a mut T)>;
+pub type ComponentSetQueryMut<'world, 'state, 'a, T> = Query<'world, 'state, (Entity, &'a mut T)>;
 
-pub struct QueryComponentSetMut<'world, 'state, 'a, T: 'static + Send + Sync + bevy::prelude::Component>(
-    ComponentSetQueryMut<'world, 'state, 'a, T>
-);
+pub struct QueryComponentSetMut<
+    'world,
+    'state,
+    'a,
+    T: 'static + Send + Sync + bevy::prelude::Component,
+>(ComponentSetQueryMut<'world, 'state, 'a, T>);
 
 impl<'world, 'state, 'a, T: 'static + Send + Sync + bevy::prelude::Component> ComponentSetOption<T>
     for QueryComponentSetMut<'world, 'state, 'a, T>
@@ -173,8 +176,10 @@ impl<'world, 'state, 'a, T: 'static + Send + Sync + bevy::prelude::Component> Co
 
     #[inline(always)]
     fn for_each(&self, mut f: impl FnMut(Index, &T)) {
-        unsafe{
-          self.0.iter_unsafe().for_each(|data| f(data.0.handle(), &data.1))
+        unsafe {
+            self.0
+                .iter_unsafe()
+                .for_each(|data| f(data.0.handle(), &data.1))
         }
     }
 }

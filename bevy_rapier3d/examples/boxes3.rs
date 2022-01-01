@@ -2,8 +2,8 @@ extern crate rapier3d as rapier; // For the debug UI.
 
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+use bevy_rapier3d::physics::wrapper::Comp;
 
-use bevy::render::pass::ClearColor;
 use rapier::geometry::ColliderShape;
 use rapier3d::pipeline::PhysicsPipeline;
 use ui::DebugUiPlugin;
@@ -20,8 +20,6 @@ fn main() {
         )))
         .insert_resource(Msaa::default())
         .add_plugins(DefaultPlugins)
-        .add_plugin(bevy_winit::WinitPlugin::default())
-        .add_plugin(bevy_wgpu::WgpuPlugin::default())
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierRenderPlugin)
         .add_plugin(DebugUiPlugin)
@@ -63,8 +61,8 @@ pub fn setup_physics(mut commands: Commands) {
     let ground_height = 0.1;
 
     let collider = ColliderBundle {
-        shape: ColliderShape::cuboid(ground_size, ground_height, ground_size),
-        position: [0.0, -ground_height, 0.0].into(),
+        shape: Comp(ColliderShape::cuboid(ground_size, ground_height, ground_size)),
+        position: Comp([0.0, -ground_height, 0.0].into()),
         ..ColliderBundle::default()
     };
 
@@ -97,12 +95,12 @@ pub fn setup_physics(mut commands: Commands) {
 
                 // Build the rigid body.
                 let rigid_body = RigidBodyBundle {
-                    position: [x, y, z].into(),
+                    position: Comp([x, y, z].into()),
                     ..RigidBodyBundle::default()
                 };
 
                 let collider = ColliderBundle {
-                    shape: ColliderShape::cuboid(rad, rad, rad),
+                    shape: Comp(ColliderShape::cuboid(rad, rad, rad).into()),
                     ..ColliderBundle::default()
                 };
 

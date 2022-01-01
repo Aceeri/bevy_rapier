@@ -1,7 +1,7 @@
+use crate::physics::wrapper::*;
 use bevy::prelude::*;
 use rapier::dynamics::{JointHandle, JointParams};
 use rapier::math::Isometry;
-use crate::physics::wrapper::{RigidBodyHandle,ColliderHandle};
 /// A component representing a rigid-body that is being handled by
 /// a Rapier physics World.
 #[derive(Component)]
@@ -18,7 +18,7 @@ impl RigidBodyHandleComponent {
     ///
     /// This can be passed to a `RigidBodySet` to retrieve a reference to a Rapier rigid-body.
     pub fn handle(&self) -> RigidBodyHandle {
-      RigidBodyHandle(*self.0)
+        Comp(*self.0)
     }
 }
 
@@ -38,7 +38,7 @@ impl ColliderHandleComponent {
     ///
     /// This can be passed to a `ColliderSet` to retrieve a reference to a Rapier rigid-body.
     pub fn handle(&self) -> ColliderHandle {
-      ColliderHandle(*self.0)
+        Comp(*self.0)
     }
 }
 
@@ -103,13 +103,13 @@ impl JointBuilderComponent {
     }
 }
 
-#[derive(Component,Copy, Clone, Debug)]
+#[derive(Component, Copy, Clone, Debug)]
 pub enum RigidBodyPositionSync {
     Discrete,
     Interpolated { prev_pos: Option<Isometry<f32>> },
 }
 
-#[derive(Component,Copy, Clone, Debug)]
+#[derive(Component, Copy, Clone, Debug)]
 pub enum ColliderPositionSync {
     // Right now, there is only discrete for colliders.
     // We may add more modes in the future.

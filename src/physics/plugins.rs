@@ -81,8 +81,7 @@ impl<UserData: 'static + WorldQuery + Send + Sync> Plugin for RapierPhysicsPlugi
         )
         .add_system_to_stage(
             PhysicsStages::FinalizeCreations,
-            physics::create_joints_system
-                .label(physics::PhysicsSystems::CreateJoints),
+            physics::create_joints_system.label(physics::PhysicsSystems::CreateJoints),
         )
         .add_system_to_stage(
             CoreStage::PreUpdate,
@@ -91,18 +90,15 @@ impl<UserData: 'static + WorldQuery + Send + Sync> Plugin for RapierPhysicsPlugi
         )
         .add_system_to_stage(
             CoreStage::Update,
-            physics::step_world_system::<UserData>
-                .label(physics::PhysicsSystems::StepWorld),
+            physics::step_world_system::<UserData>.label(physics::PhysicsSystems::StepWorld),
         )
         .add_system_to_stage(
             PhysicsStages::SyncTransforms,
-            physics::sync_transforms
-                .label(physics::PhysicsSystems::SyncTransforms),
+            physics::sync_transforms.label(physics::PhysicsSystems::SyncTransforms),
         )
         .add_system_to_stage(
             CoreStage::PostUpdate,
-            physics::collect_removals
-                .label(physics::PhysicsSystems::CollectRemovals),
+            physics::collect_removals.label(physics::PhysicsSystems::CollectRemovals),
         );
         if app
             .world
