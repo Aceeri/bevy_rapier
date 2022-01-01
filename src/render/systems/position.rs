@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::prelude::*;
 use crate::render::prelude::*;
 use crate::render::render::PositionWireframeMaterial;
+use bevy::render::prelude::*;
 
 /// Spawn newly added debug positions.
 pub fn spawn_debug_positions(
@@ -14,7 +15,7 @@ pub fn spawn_debug_positions(
     for (entity, debug) in query.iter() {
         commands.entity(entity)
             .insert(RapierDebugPositionLoaded)
-            .insert(Visible { is_visible: true, is_transparent: true })
+            .insert(Visibility { is_visible: true })
             .with_children(|parent| {
                 parent.spawn()
                 .insert(Name::new("Hilt Position"))

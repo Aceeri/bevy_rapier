@@ -16,7 +16,7 @@ use bevy::render::pipeline::PipelineDescriptor;
 
 /// Rapier Debug Render Pass.
 /// **Note:* Runs after the Main pass before the Ui Pass.
-#[derive(Debug, Clone, Default, bevy::render::renderer::RenderResources)]
+#[derive(Debug, Clone, Default, RenderResource)]
 pub struct RapierDebugPass;
 
 /// Name of the camera used in th rapier_debug render pass.

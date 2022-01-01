@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::render::camera::{Camera, VisibleEntities};
+use bevy::render::primitives::Frustum;
 
 /// Perspective Camera for use in the rapier_debug render pass.
 /// Simple copy of PerspectiveCameraBundle but with the appropriate name for use in the
@@ -46,6 +47,7 @@ pub struct RapierDebugOrthographicCameraBundle {
     pub visible_entities: VisibleEntities,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+    pub frustum: Frustum,
 }
 
 impl Default for RapierDebugOrthographicCameraBundle {
@@ -56,6 +58,7 @@ impl Default for RapierDebugOrthographicCameraBundle {
             visible_entities,
             transform,
             global_transform,
+            frustum,
         } = OrthographicCameraBundle::with_name(&crate::render::render::CAMERA_RAPIER_DEBUG.to_string());
         Self {
             camera,
@@ -63,6 +66,7 @@ impl Default for RapierDebugOrthographicCameraBundle {
             visible_entities,
             transform,
             global_transform,
+            frustum,
         }
     }
 }

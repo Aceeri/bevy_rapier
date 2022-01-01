@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy::render::pipeline::PrimitiveTopology;
+use bevy::render::render_resource::PrimitiveTopology;
 use bevy::render::mesh::VertexAttributeValues;
 use crate::prelude::*;
 

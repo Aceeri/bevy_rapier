@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crate::prelude::*;
 
 pub fn wire_cylinder(cylinder: &Cylinder, config: &RapierConfiguration) -> Mesh {
-    use bevy::render::pipeline::PrimitiveTopology;
+    use bevy::render::render_resource::PrimitiveTopology;
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(16 * 2);
     let mut indices: Vec<u16> = Vec::with_capacity(16 * 2 * 2 + 2 * 4);
 

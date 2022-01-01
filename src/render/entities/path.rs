@@ -1,5 +1,8 @@
 use bevy::prelude::*;
-use bevy::render::pipeline::RenderPipeline;
+use bevy::render::{
+    render_resource::RenderPipeline,
+    primitives::Frustum,
+};
 
 use crate::render::render::WireframeMaterial;
 

@@ -22,7 +22,7 @@ mod cylinder;
 pub use self::cylinder::wire_cylinder;
 
 use bevy::prelude::*;
-use bevy::render::pipeline::PrimitiveTopology;
+use bevy::render::render_resource::PrimitiveTopology;
 use bevy::render::mesh::Indices;
 use crate::prelude::*;
 
