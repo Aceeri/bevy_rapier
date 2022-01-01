@@ -5,6 +5,7 @@ use bevy_rapier3d::prelude::*;
 
 use bevy::render::camera::Camera;
 use bevy::render::pass::ClearColor;
+use bevy_rapier3d::render::render::WireframeMaterial;
 use rapier::geometry::{ColliderShape, InteractionGroups, Ray};
 use rapier::pipeline::{PhysicsPipeline, QueryPipeline};
 use ui::DebugUiPlugin;
@@ -24,7 +25,7 @@ fn main() {
         .add_plugin(bevy_winit::WinitPlugin::default())
         .add_plugin(bevy_wgpu::WgpuPlugin::default())
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugin(RapierRenderPlugin)
+        .add_plugin(RapierDebugPlugin)
         .add_plugin(DebugUiPlugin)
         .add_startup_system(setup_graphics.system())
         .add_startup_system(setup_physics.system())
@@ -55,6 +56,14 @@ fn setup_graphics(mut commands: Commands) {
         )),
         ..Default::default()
     });
+    commands.spawn_bundle(RapierDebugPerspectiveCameraBundle {
+        transform: Transform::from_matrix(Mat4::face_toward(
+            Vec3::new(-30.0, 30.0, 100.0),
+            Vec3::new(0.0, 10.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        )),
+        ..Default::default()
+    });
 }
 
 pub fn setup_physics(mut commands: Commands) {
@@ -72,7 +81,7 @@ pub fn setup_physics(mut commands: Commands) {
 
     commands
         .spawn_bundle(collider)
-        .insert(ColliderDebugRender::default())
+        .insert(RapierDebugCollider::default())
         .insert(ColliderPositionSync::Discrete);
 
     /*
@@ -87,7 +96,6 @@ pub fn setup_physics(mut commands: Commands) {
     let centerz = shift * (num / 2) as f32;
 
     let mut offset = -(num as f32) * (rad * 2.0 + rad) * 0.5;
-    let mut color = 0;
 
     for j in 0usize..20 {
         for i in 0..num {
@@ -95,7 +103,6 @@ pub fn setup_physics(mut commands: Commands) {
                 let x = i as f32 * shift - centerx + offset;
                 let y = j as f32 * shift + centery + 3.0;
                 let z = k as f32 * shift - centerz + offset;
-                color += 1;
 
                 // Build the rigid body.
                 let rigid_body = RigidBodyBundle {
@@ -108,11 +115,9 @@ pub fn setup_physics(mut commands: Commands) {
                     ..ColliderBundle::default()
                 };
 
-                commands
-                    .spawn()
-                    .insert_bundle(rigid_body)
+                commands.spawn_bundle(rigid_body)
                     .insert_bundle(collider)
-                    .insert(ColliderDebugRender::with_id(color))
+                    .insert(RapierDebugCollider { color: Color::VIOLET })
                     .insert(ColliderPositionSync::Discrete);
             }
         }
@@ -123,12 +128,13 @@ pub fn setup_physics(mut commands: Commands) {
 
 fn cast_ray(
     mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<WireframeMaterial>>,
     windows: Res<Windows>,
     query_pipeline: Res<QueryPipeline>,
     colliders: QueryPipelineColliderComponentsQuery,
-    bodies: Query<&RigidBodyType>,
+    bodies: Query<(&RigidBodyType, &Children)>,
     cameras: Query<(&Camera, &GlobalTransform)>,
+    collider_debug_entities: Query<Entity, With<Handle<WireframeMaterial>>>
 ) {
     // We will color in read the colliders hovered by the mouse.
     for (camera, camera_transform) in cameras.iter() {
@@ -150,10 +156,19 @@ fn cast_ray(
         if let Some(hit) = hit {
             // Color in red the entity we just hit.
             // But don't color it if the rigid-body is not dynamic.
-            if bodies.get(hit.0.entity()).ok() == Some(&RigidBodyType::Dynamic) {
-                // TODO: don't create a new material every time.
-                let material = materials.add(Color::rgb(1.0, 0.0, 0.0).into());
-                commands.entity(hit.0.entity()).insert(material);
+            if bodies.get(hit.0.entity()).ok().map(|(x, _)| x) == Some(&RigidBodyType::Dynamic) {
+                let (_, children) = bodies.get(hit.0.entity()).unwrap();
+                for child in children.iter() {
+                    if let Ok(collider_entity) = collider_debug_entities.get(*child) {
+                        // TODO: don't create a new material every time.
+                        commands.entity(collider_entity)
+                        .insert(materials.add(WireframeMaterial {
+                            color: Color::MAROON,
+                            ..Default::default()
+                        }));
+                    }
+
+                }
             }
         }
     }
