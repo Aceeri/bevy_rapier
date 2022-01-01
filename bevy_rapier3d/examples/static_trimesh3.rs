@@ -26,7 +26,7 @@ fn main() {
         .add_plugin(bevy_winit::WinitPlugin::default())
         .add_plugin(bevy_wgpu::WgpuPlugin::default())
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugin(RapierRenderPlugin)
+        .add_plugin(RapierDebugPlugin)
         .add_plugin(DebugUiPlugin)
         .add_startup_system(setup_graphics.system())
         .add_startup_system(setup_physics.system())
@@ -51,6 +51,14 @@ fn setup_graphics(mut commands: Commands) {
         ..Default::default()
     });
     commands.spawn_bundle(PerspectiveCameraBundle {
+        transform: Transform::from_matrix(Mat4::face_toward(
+            Vec3::new(-15.0, 8.0, 15.0),
+            Vec3::new(-5.0, 0.0, 5.0),
+            Vec3::new(0.0, 1.0, 0.0),
+        )),
+        ..Default::default()
+    });
+    commands.spawn_bundle(RapierDebugPerspectiveCameraBundle {
         transform: Transform::from_matrix(Mat4::face_toward(
             Vec3::new(-15.0, 8.0, 15.0),
             Vec3::new(-5.0, 0.0, 5.0),
@@ -90,7 +98,7 @@ pub fn setup_physics(mut commands: Commands) {
     };
     commands
         .spawn_bundle(collider)
-        .insert(ColliderDebugRender::default())
+        .insert(RapierDebugCollider::default())
         .insert(ColliderPositionSync::Discrete);
 
     // Create a bowl with a cosine cross-section,
@@ -137,7 +145,7 @@ pub fn setup_physics(mut commands: Commands) {
     };
     commands
         .spawn_bundle(collider)
-        .insert(ColliderDebugRender::default())
+        .insert(RapierDebugCollider::default())
         .insert(ColliderPositionSync::Discrete);
 }
 
@@ -192,7 +200,9 @@ fn ball_spawner(
     commands
         .spawn_bundle(collider)
         .insert_bundle(rigid_body)
-        .insert(ColliderDebugRender::with_id(0))
+        .insert(RapierDebugCollider { color: Color::BLUE })
+        .insert(RapierDebugPath { color: Color::TEAL, length: 400, ..Default::default() })
+        .insert(RapierDebugPosition::default())
         .insert(ColliderPositionSync::Discrete);
 
     ball_state.balls_spawned += 1;
