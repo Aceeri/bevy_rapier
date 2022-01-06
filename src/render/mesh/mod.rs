@@ -21,6 +21,10 @@ mod cylinder;
 #[cfg(feature = "dim3")]
 pub use self::cylinder::wire_cylinder;
 
+mod convex_mesh;
+#[cfg(feature = "dim3")]
+pub use self::convex_mesh::wire_convex_mesh;
+
 use bevy::prelude::*;
 use bevy::render::pipeline::PrimitiveTopology;
 use bevy::render::mesh::Indices;

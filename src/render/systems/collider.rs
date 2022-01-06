@@ -36,20 +36,23 @@ pub fn spawn_debug_colliders(
             .insert(RapierDebugColliderLoaded)
             .insert(Visible { is_visible: true, is_transparent: true })
             .with_children(|parent| {
-                if let Some(mesh) = collider_to_mesh(shape, &config) {
-                    parent.spawn()
-                        .insert(Name::new("Hilt Collider"))
-                        .insert(RapierDebugRenderCollider)
-                        .insert_bundle(RapierDebugColliderWireframeBundle {
-                            mesh: meshes.add(mesh),
-                            material: materials.add(crate::render::render::WireframeMaterial {
-                                color: debug.color,
-                                dashed: ty == &ColliderType::Sensor
-                            }),
-                            global_transform: GlobalTransform::from(transform),
-                            transform,
-                            ..Default::default()
-                        });
+                if let Some(collider_meshes) = collider_to_mesh(shape, &config) {
+                    for collider_mesh in collider_meshes {
+                        parent.spawn()
+                            .insert(Name::new("Hilt Collider"))
+                            .insert(RapierDebugRenderCollider)
+                            .insert_bundle(RapierDebugColliderWireframeBundle {
+                                mesh: meshes.add(collider_mesh.mesh),
+                                material: materials.add(crate::render::render::WireframeMaterial {
+                                    color: debug.color,
+                                    //dashed: ty == &ColliderType::Sensor,
+                                    dashed: false,
+                                }),
+                                global_transform: GlobalTransform::from(transform),
+                                transform,
+                                ..Default::default()
+                            });
+                    }
                 }
             });
     }
@@ -84,40 +87,81 @@ fn rigid_body_transform(rb_pos: &RigidBodyPosition, co_pos: &ColliderPosition) -
     Transform::from_xyz(pos.x, pos.y, 1.0)
 }
 
-fn collider_to_mesh(shape: &ColliderShape, config: &RapierConfiguration) -> Option<Mesh> {
+pub struct ColliderFound {
+    isometry: Option<Isometry<Real>>,
+    mesh: Mesh,
+}
+
+impl ColliderFound {
+    pub fn from(mesh: Mesh) -> ColliderFound {
+        Self {
+            isometry: None,
+            mesh: mesh,
+        }
+    }
+}
+
+fn collider_to_mesh(shape: &ColliderShape, config: &RapierConfiguration) -> Option<Vec<ColliderFound>> {
+    let mut found = Vec::new();
     match shape.shape_type() {
         ShapeType::Cuboid => {
             let cuboid = shape.as_cuboid().unwrap();
-            Some(crate::render::mesh::wire_cube(cuboid, config))
+            found.push(ColliderFound::from(crate::render::mesh::wire_cube(cuboid, config)));
         },
         ShapeType::Ball => {
             let ball = shape.as_ball().unwrap();
-            Some(crate::render::mesh::wire_sphere(ball.radius * config.scale))
+            found.push(ColliderFound::from(crate::render::mesh::wire_sphere(ball.radius * config.scale)));
         },
         ShapeType::TriMesh => {
             let trimesh = shape.as_trimesh().unwrap();
-            Some(crate::render::mesh::wire_trimesh(trimesh))
+            found.push(ColliderFound::from(crate::render::mesh::wire_trimesh(trimesh)));
         },
         ShapeType::Capsule => {
             let capsule = shape.as_capsule().unwrap();
-            Some(crate::render::mesh::wire_capsule(capsule, config))
+            found.push(ColliderFound::from(crate::render::mesh::wire_capsule(capsule, config)));
         },
         ShapeType::Polyline => {
             let polyline = shape.as_polyline().unwrap();
-            Some(crate::render::mesh::wire_polyline(polyline))
+            found.push(ColliderFound::from(crate::render::mesh::wire_polyline(polyline)));
         },
         ShapeType::Segment => {
             let segment = shape.as_segment().unwrap();
-            Some(crate::render::mesh::wire_segment(segment))
+            found.push(ColliderFound::from(crate::render::mesh::wire_segment(segment)));
         },
         #[cfg(feature = "dim3")]
         ShapeType::Cylinder => {
             let cylinder = shape.as_cylinder().unwrap();
-            Some(crate::render::mesh::wire_cylinder(cylinder, config))
+            found.push(ColliderFound::from(crate::render::mesh::wire_cylinder(cylinder, config)));
         },
+        #[cfg(feature = "dim3")]
+        ShapeType::ConvexPolyhedron => {
+            let convex_mesh = shape.as_convex_polyhedron().unwrap();
+            found.push(ColliderFound::from(crate::render::mesh::wire_convex_mesh(convex_mesh)));
+        },
+        ShapeType::Compound => {
+            let compound = shape.as_compound().unwrap();
+            for (isometry, shape) in compound.shapes() {
+                let recurse_found = collider_to_mesh(shape, config);
+                if let Some(mut inner_found) = recurse_found {
+                    for recurse in &mut inner_found {
+                        recurse.isometry = match recurse.isometry {
+                            Some(other) => Some(isometry * other),
+                            None => Some(*isometry),
+                        };
+                    }
+
+                    found.extend(inner_found);
+                }
+            }
+        }
         ty => {
             warn!("Unable to render collider shape type: {:?}", ty);
-            None
         }
+    }
+
+    if found.len() > 0 {
+        Some(found)
+    } else {
+        None
     }
 }
