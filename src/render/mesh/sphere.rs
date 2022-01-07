@@ -18,7 +18,7 @@ pub fn wire_sphere(radius: f32) -> Mesh {
     for i in 0..32u16 {
         let t = (i as f32) * (2.0 / 32.0);
         let (y, x) = f32::sin_cos(t * std::f32::consts::PI);
-        positions.push([x*radius, y*radius, 0.0]);
+        positions.push([x*radius, 0.0, y*radius]);
         if i < 31 {
             indices.push(i);
             indices.push(i + 1);

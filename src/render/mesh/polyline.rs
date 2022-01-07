@@ -35,7 +35,7 @@ pub fn wire_polyline(polyline: &Polyline) -> Mesh {
             polyline
                 .vertices()
                 .iter()
-                .map(|vertex| [vertex.x, vertex.y])
+                .map(|vertex| [vertex.x, 0.0, vertex.y])
                 .collect::<Vec<_>>(),
         ),
     );

@@ -19,7 +19,7 @@ pub fn wire_trimesh(trimesh: &TriMesh) -> Mesh {
     let indicies = trimesh
         .indices()
         .iter()
-        .flat_map(|triangle| [triangle[0], triangle[1], triangle[2], triangle[0]])
+        .flat_map(|triangle| [triangle[0], triangle[1], triangle[2]])
         .collect();
 
     mesh.set_indices(Some(Indices::U32(indicies)));
@@ -35,14 +35,15 @@ pub fn wire_trimesh(trimesh: &TriMesh) -> Mesh {
             trimesh
                 .vertices()
                 .iter()
-                .map(|vertex| [vertex.x, vertex.y])
+                .map(|vertex| [vertex.x, 0.0, vertex.y])
                 .collect::<Vec<_>>(),
         ),
     );
     let indicies = trimesh
         .indices()
         .iter()
-        .flat_map(|triangle| [triangle[0], triangle[1], triangle[0]])
+        .cloned()
+        .flatten()
         .collect();
 
     mesh.set_indices(Some(Indices::U32(indicies)));

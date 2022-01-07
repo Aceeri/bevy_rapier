@@ -9,8 +9,8 @@ pub fn wire_segment(segment: &Segment) -> Mesh {
         Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::from(
             vec![
-                [segment.a.x, segment.a.y],
-                [segment.b.x, segment.b.y]
+                [segment.a.x, 0.0, segment.a.y],
+                [segment.b.x, 0.0, segment.b.y]
             ],
         ),
     );

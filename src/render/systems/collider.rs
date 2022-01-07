@@ -45,8 +45,8 @@ pub fn spawn_debug_colliders(
                                 mesh: meshes.add(collider_mesh.mesh),
                                 material: materials.add(crate::render::render::WireframeMaterial {
                                     color: debug.color,
-                                    //dashed: ty == &ColliderType::Sensor,
-                                    dashed: false,
+                                    dashed: ty == &ColliderType::Sensor,
+                                    //dashed: false,
                                 }),
                                 global_transform: GlobalTransform::from(transform),
                                 transform,
@@ -136,6 +136,11 @@ fn collider_to_mesh(shape: &ColliderShape, config: &RapierConfiguration) -> Opti
         #[cfg(feature = "dim3")]
         ShapeType::ConvexPolyhedron => {
             let convex_mesh = shape.as_convex_polyhedron().unwrap();
+            found.push(ColliderFound::from(crate::render::mesh::wire_convex_mesh(convex_mesh)));
+        },
+        #[cfg(feature = "dim2")]
+        ShapeType::ConvexPolygon => {
+            let convex_mesh = shape.as_convex_polygon().unwrap();
             found.push(ColliderFound::from(crate::render::mesh::wire_convex_mesh(convex_mesh)));
         },
         ShapeType::Compound => {

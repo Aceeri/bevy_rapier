@@ -7,7 +7,7 @@ use crate::prelude::*;
 #[cfg(feature = "dim3")]
 pub fn wire_convex_mesh(convex_mesh: &ConvexPolyhedron) -> Mesh {
     let (vertices, indices) = rapier::parry::transformation::convex_hull(convex_mesh.points());
-    let mut mesh = Mesh::new(PrimitiveTopology::LineStrip);
+    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
     mesh.set_attribute(
         Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::from(
@@ -19,36 +19,34 @@ pub fn wire_convex_mesh(convex_mesh: &ConvexPolyhedron) -> Mesh {
     );
     let indices = indices
         .iter()
-        .flat_map(|triangle| [triangle[0], triangle[1], triangle[2], triangle[0]])
+        .flat_map(|triangle| [triangle[0], triangle[1], triangle[2]])
         .collect();
 
     mesh.set_indices(Some(Indices::U32(indices)));
     mesh
 }
 
-
-
-/*
 #[cfg(feature = "dim2")]
 pub fn wire_convex_mesh(convex_mesh: &ConvexPolygon) -> Mesh {
-    let mut mesh = Mesh::new(PrimitiveTopology::LineStrip);
+    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
     mesh.set_attribute(
         Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::from(
             convex_mesh
-                .vertices()
+                .points()
                 .iter()
-                .map(|vertex| [vertex.x, vertex.y])
+                .map(|vertex| [vertex.x, 0.0, vertex.y])
                 .collect::<Vec<_>>(),
         ),
     );
-    let indicies = convex_mesh
+    /*
+    let indices = convex_mesh
         .indices()
         .iter()
         .flat_map(|triangle| [triangle[0], triangle[1], triangle[0]])
         .collect();
+        */
 
-    mesh.set_indices(Some(Indices::U32(indicies)));
+    //mesh.set_indices(Some(Indices::U32(indices)));
     mesh
 }
-*/

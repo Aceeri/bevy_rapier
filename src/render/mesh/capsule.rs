@@ -14,6 +14,6 @@ pub fn wire_capsule(capsule: &Capsule, config: &RapierConfiguration) -> Mesh {
     });
     let mut new_mesh = Mesh::new(PrimitiveTopology::LineList);
     new_mesh.set_attribute(Mesh::ATTRIBUTE_POSITION, capsule.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().to_owned());
-    new_mesh.set_indices(capsule.indices().map(|x|x.to_owned()));
+    new_mesh.set_indices(capsule.indices().map(|x| x.to_owned()));
     new_mesh
 }

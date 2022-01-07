@@ -41,10 +41,10 @@ pub fn wire_cube(cuboid: &Cuboid, config: &RapierConfiguration) -> Mesh {
         Mesh::ATTRIBUTE_POSITION,
         vec![
             // Front
-            [x, y],
-            [x, -y],
-            [-x, -y],
-            [-x, y],
+            [x, 0.0, y],
+            [x, 0.0, -y],
+            [-x, 0.0, -y],
+            [-x, 0.0, y],
             // Back
 //            [x, y, -z],
 //            [x, -y, -z],
