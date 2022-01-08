@@ -3,7 +3,7 @@ use bevy::render::pipeline::PrimitiveTopology;
 
 #[cfg(feature = "dim3")]
 pub fn wire_sphere(radius: f32) -> Mesh {
-    let capsule = Mesh::from(bevy::prelude::shape::Icosphere { radius, subdivisions: 1 });
+    let capsule = Mesh::from(bevy::prelude::shape::Icosphere { radius, subdivisions: 3 });
     let mut new_mesh = Mesh::new(PrimitiveTopology::LineList);
     new_mesh.set_attribute(Mesh::ATTRIBUTE_POSITION, capsule.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().to_owned());
     new_mesh.set_indices(capsule.indices().map(|x|x.to_owned()));

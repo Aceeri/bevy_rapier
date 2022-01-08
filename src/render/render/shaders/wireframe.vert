@@ -9,6 +9,6 @@ layout(set = 1, binding = 0) uniform Transform {
     mat4 Model;
 };
 void main() {
-    gl_Position = ViewProj * Model * vec4(Vertex_Position, 1.0);
+    gl_Position = ViewProj * Model * vec4(Vertex_Position.x, Vertex_Position.z, Vertex_Position.y, 1.0);
     v_Position = Vertex_Position;
 }
