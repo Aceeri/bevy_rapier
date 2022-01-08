@@ -32,6 +32,7 @@ pub mod prelude {
         RapierConfiguration, RapierPhysicsPlugin, RigidBodyBundle, RigidBodyComponentsSet,
         RigidBodyPositionSync,
     };
+    pub use super::physics::wrapper::Comp;
     #[cfg(feature = "render")]
     pub use super::render::{ColliderDebugRender, RapierRenderPlugin};
     pub use rapier::prelude::*;
