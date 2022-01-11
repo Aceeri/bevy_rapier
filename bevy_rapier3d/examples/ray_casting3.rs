@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use bevy::render::camera::Camera;
-use bevy::render::pass::ClearColor;
 use bevy_rapier3d::render::render::WireframeMaterial;
 use rapier::geometry::{ColliderShape, InteractionGroups, Ray};
 use rapier::pipeline::{PhysicsPipeline, QueryPipeline};
@@ -14,7 +13,7 @@ use ui::DebugUiPlugin;
 mod ui;
 
 fn main() {
-    App::build()
+    App::new()
         .insert_resource(ClearColor(Color::rgb(
             0xF9 as f32 / 255.0,
             0xF9 as f32 / 255.0,
@@ -22,8 +21,6 @@ fn main() {
         )))
         .insert_resource(Msaa::default())
         .add_plugins(DefaultPlugins)
-        .add_plugin(bevy_winit::WinitPlugin::default())
-        .add_plugin(bevy_wgpu::WgpuPlugin::default())
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierDebugPlugin)
         .add_plugin(DebugUiPlugin)
@@ -39,11 +36,27 @@ fn enable_physics_profiling(mut pipeline: ResMut<PhysicsPipeline>) {
 }
 
 fn setup_graphics(mut commands: Commands) {
-    commands.spawn_bundle(LightBundle {
-        transform: Transform::from_translation(Vec3::new(100.0, 10.0, 200.0)),
-        light: Light {
-            intensity: 100_000.0,
-            range: 3000.0,
+    const HALF_SIZE: f32 = 100.0;
+
+    commands.spawn_bundle(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: 10000.0,
+            // Configure the projection to better fit the scene
+            shadow_projection: OrthographicProjection {
+                left: -HALF_SIZE,
+                right: HALF_SIZE,
+                bottom: -HALF_SIZE,
+                top: HALF_SIZE,
+                near: -10.0 * HALF_SIZE,
+                far: 100.0 * HALF_SIZE,
+                ..Default::default()
+            },
+            shadows_enabled: true,
+            ..Default::default()
+        },
+        transform: Transform {
+            translation: Vec3::new(10.0, 2.0, 10.0),
+            rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4),
             ..Default::default()
         },
         ..Default::default()
@@ -74,7 +87,7 @@ pub fn setup_physics(mut commands: Commands) {
     let ground_height = 0.1;
 
     let collider = ColliderBundle {
-        shape: ColliderShape::cuboid(ground_size, ground_height, ground_size),
+        shape: ColliderShape::cuboid(ground_size, ground_height, ground_size).into(),
         position: [0.0, -ground_height, 0.0].into(),
         ..ColliderBundle::default()
     };
@@ -111,7 +124,7 @@ pub fn setup_physics(mut commands: Commands) {
                 };
 
                 let collider = ColliderBundle {
-                    shape: ColliderShape::cuboid(rad, rad, rad),
+                    shape: ColliderShape::cuboid(rad, rad, rad).into(),
                     ..ColliderBundle::default()
                 };
 
@@ -132,7 +145,7 @@ fn cast_ray(
     windows: Res<Windows>,
     query_pipeline: Res<QueryPipeline>,
     colliders: QueryPipelineColliderComponentsQuery,
-    bodies: Query<(&RigidBodyType, &Children)>,
+    bodies: Query<(&RigidBodyTypeComponent, &Children)>,
     cameras: Query<(&Camera, &GlobalTransform)>,
     collider_debug_entities: Query<Entity, With<Handle<WireframeMaterial>>>
 ) {
@@ -156,6 +169,7 @@ fn cast_ray(
         if let Some(hit) = hit {
             // Color in red the entity we just hit.
             // But don't color it if the rigid-body is not dynamic.
+
             if bodies.get(hit.0.entity()).ok().map(|(x, _)| x) == Some(&RigidBodyType::Dynamic) {
                 let (_, children) = bodies.get(hit.0.entity()).unwrap();
                 for child in children.iter() {
@@ -170,6 +184,15 @@ fn cast_ray(
 
                 }
             }
+
+            /*
+            if let Ok(rb_type) = bodies.get(hit.0.entity()) {
+                if rb_type.0 == RigidBodyType::Dynamic {
+                    // TODO: don't create a new material every time.
+                    let material = materials.add(Color::rgb(1.0, 0.0, 0.0).into());
+                    commands.entity(hit.0.entity()).insert(material);
+                }
+            } */
         }
     }
 }

@@ -9,13 +9,17 @@ use crate::rapier::pipeline::QueryPipeline;
 use bevy::app::Events;
 use bevy::ecs::query::WorldQuery;
 use bevy::prelude::*;
-use rapier::dynamics::{CCDSolver, IntegrationParameters, IslandManager, JointSet};
+use rapier::dynamics::{
+    CCDSolver, ImpulseJointSet, IntegrationParameters, IslandManager, MultibodyJointSet,
+};
 use rapier::geometry::{BroadPhase, NarrowPhase};
 use rapier::pipeline::PhysicsPipeline;
 use std::marker::PhantomData;
 
-pub type NoUserData<'a> = &'a ();
-
+#[derive(Component)]
+pub struct S;
+pub type NoUserData<'a> = &'a S;
+//pub type NoUserData = S;
 /// A plugin responsible for setting up a full Rapier physics simulation pipeline and resources.
 ///
 /// This will automatically setup all the resources needed to run a Rapier physics simulation including:
@@ -47,7 +51,7 @@ pub enum PhysicsStages {
 }
 
 impl<UserData: 'static + WorldQuery + Send + Sync> Plugin for RapierPhysicsPlugin<UserData> {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_stage_before(
             CoreStage::PreUpdate,
             PhysicsStages::FinalizeCreations,
@@ -65,7 +69,8 @@ impl<UserData: 'static + WorldQuery + Send + Sync> Plugin for RapierPhysicsPlugi
         .insert_resource(BroadPhase::new())
         .insert_resource(NarrowPhase::new())
         .insert_resource(IslandManager::new())
-        .insert_resource(JointSet::new())
+        .insert_resource(ImpulseJointSet::new())
+        .insert_resource(MultibodyJointSet::new())
         .insert_resource(CCDSolver::new())
         .insert_resource(Events::<IntersectionEvent>::default())
         .insert_resource(Events::<ContactEvent>::default())
@@ -75,41 +80,31 @@ impl<UserData: 'static + WorldQuery + Send + Sync> Plugin for RapierPhysicsPlugi
         .add_system_to_stage(
             PhysicsStages::FinalizeCreations,
             physics::attach_bodies_and_colliders_system
-                .system()
                 .label(physics::PhysicsSystems::AttachBodiesAndColliders),
         )
         .add_system_to_stage(
             PhysicsStages::FinalizeCreations,
-            physics::create_joints_system
-                .system()
-                .label(physics::PhysicsSystems::CreateJoints),
+            physics::create_joints_system.label(physics::PhysicsSystems::CreateJoints),
         )
         .add_system_to_stage(
             CoreStage::PreUpdate,
             physics::finalize_collider_attach_to_bodies
-                .system()
                 .label(physics::PhysicsSystems::FinalizeColliderAttachToBodies),
         )
         .add_system_to_stage(
             CoreStage::Update,
-            physics::step_world_system::<UserData>
-                .system()
-                .label(physics::PhysicsSystems::StepWorld),
+            physics::step_world_system::<UserData>.label(physics::PhysicsSystems::StepWorld),
         )
         .add_system_to_stage(
             PhysicsStages::SyncTransforms,
-            physics::sync_transforms
-                .system()
-                .label(physics::PhysicsSystems::SyncTransforms),
+            physics::sync_transforms.label(physics::PhysicsSystems::SyncTransforms),
         )
         .add_system_to_stage(
             CoreStage::PostUpdate,
-            physics::collect_removals
-                .system()
-                .label(physics::PhysicsSystems::CollectRemovals),
+            physics::collect_removals.label(physics::PhysicsSystems::CollectRemovals),
         );
         if app
-            .world()
+            .world
             .get_resource::<PhysicsHooksWithQueryObject<UserData>>()
             .is_none()
         {
