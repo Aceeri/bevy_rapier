@@ -55,7 +55,9 @@ fn spawn_player(mut commands: Commands, mut rapier_config: ResMut<RapierConfigur
             ..Default::default()
         })
         .insert(ColliderPositionSync::Discrete)
-        .insert(RapierDebugCollider { color: Color::VIOLET })
+        .insert(RapierDebugCollider {
+            color: Color::VIOLET,
+        })
         .insert(RapierDebugPath::default())
         .insert(RapierDebugPosition::default())
         .insert(Player(300.0));

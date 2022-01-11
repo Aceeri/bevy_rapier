@@ -121,7 +121,8 @@ pub fn setup_physics(mut commands: Commands) {
             };
 
             let mut entity = commands.spawn_bundle(body);
-            entity.insert_bundle(collider)
+            entity
+                .insert_bundle(collider)
                 .insert(ColliderPositionSync::Discrete);
             if j % 2 == 0 {
                 entity.insert(RapierDebugCollider { color: Color::BLUE });

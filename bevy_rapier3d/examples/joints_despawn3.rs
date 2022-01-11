@@ -127,7 +127,9 @@ fn create_prismatic_joints(
         let curr_child = commands
             .spawn_bundle(rigid_body)
             .insert_bundle(collider)
-            .insert(RapierDebugCollider { color: Color::VIOLET })
+            .insert(RapierDebugCollider {
+                color: Color::VIOLET,
+            })
             .insert(ColliderPositionSync::Discrete)
             .id();
 
@@ -205,7 +207,9 @@ fn create_revolute_joints(
             handles[k] = commands
                 .spawn_bundle(rigid_body)
                 .insert_bundle(collider)
-                .insert(RapierDebugCollider { color: Color::VIOLET })
+                .insert(RapierDebugCollider {
+                    color: Color::VIOLET,
+                })
                 .insert(ColliderPositionSync::Discrete)
                 .id();
         }
@@ -284,7 +288,9 @@ fn create_fixed_joints(
             let child_entity = commands
                 .spawn_bundle(rigid_body)
                 .insert_bundle(collider)
-                .insert(RapierDebugCollider { color: Color::VIOLET })
+                .insert(RapierDebugCollider {
+                    color: Color::VIOLET,
+                })
                 .insert(ColliderPositionSync::Discrete)
                 .id();
 
@@ -355,7 +361,9 @@ fn create_ball_joints(commands: &mut Commands, num: usize, despawn: &mut ResMut<
             let child_entity = commands
                 .spawn_bundle(collider)
                 .insert_bundle(rigid_body)
-                .insert(RapierDebugCollider { color: Color::ORANGE })
+                .insert(RapierDebugCollider {
+                    color: Color::ORANGE,
+                })
                 .insert(ColliderPositionSync::Discrete)
                 .id();
 

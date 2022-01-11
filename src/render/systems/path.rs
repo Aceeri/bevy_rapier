@@ -54,7 +54,7 @@ pub fn update_path_mesh(
     mut meshes: ResMut<Assets<Mesh>>,
     config: Res<RapierConfiguration>,
     query: Query<
-        (Entity, &RapierDebugPath, &RapierDebugPathLoaded, Option<&ColliderPosition>, Option<&RigidBodyPosition>),
+        (Entity, &RapierDebugPath, &RapierDebugPathLoaded, Option<&ColliderPositionComponent>, Option<&RigidBodyPositionComponent>),
     >,
     paths_query: Query<&Handle<Mesh>, With<RapierDebugRenderPath>>
 ) {

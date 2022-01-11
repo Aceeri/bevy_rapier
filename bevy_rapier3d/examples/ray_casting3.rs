@@ -128,9 +128,12 @@ pub fn setup_physics(mut commands: Commands) {
                     ..ColliderBundle::default()
                 };
 
-                commands.spawn_bundle(rigid_body)
+                commands
+                    .spawn_bundle(rigid_body)
                     .insert_bundle(collider)
-                    .insert(RapierDebugCollider { color: Color::VIOLET })
+                    .insert(RapierDebugCollider {
+                        color: Color::VIOLET,
+                    })
                     .insert(ColliderPositionSync::Discrete);
             }
         }
@@ -147,7 +150,7 @@ fn cast_ray(
     colliders: QueryPipelineColliderComponentsQuery,
     bodies: Query<(&RigidBodyTypeComponent, &Children)>,
     cameras: Query<(&Camera, &GlobalTransform)>,
-    collider_debug_entities: Query<Entity, With<Handle<WireframeMaterial>>>
+    collider_debug_entities: Query<Entity, With<Handle<WireframeMaterial>>>,
 ) {
     // We will color in read the colliders hovered by the mouse.
     for (camera, camera_transform) in cameras.iter() {
@@ -175,13 +178,13 @@ fn cast_ray(
                 for child in children.iter() {
                     if let Ok(collider_entity) = collider_debug_entities.get(*child) {
                         // TODO: don't create a new material every time.
-                        commands.entity(collider_entity)
-                        .insert(materials.add(WireframeMaterial {
-                            color: Color::MAROON,
-                            ..Default::default()
-                        }));
+                        commands
+                            .entity(collider_entity)
+                            .insert(materials.add(WireframeMaterial {
+                                color: Color::MAROON,
+                                ..Default::default()
+                            }));
                     }
-
                 }
             }
 

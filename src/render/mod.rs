@@ -1,6 +1,5 @@
 mod mesh;
 
-pub mod render;
 pub mod entities;
 pub mod systems;
 
@@ -9,7 +8,10 @@ pub use self::plugin::RapierDebugPlugin;
 
 pub mod prelude {
     pub use crate::render::entities::*;
-    pub use crate::render::{RapierDebugPlugin, RapierDebugToggleVisibility, RapierDebugToggleRenderPass, RapierDebugEntities};
+    pub use crate::render::{
+        RapierDebugEntities, RapierDebugPlugin, RapierDebugToggleRenderPass,
+        RapierDebugToggleVisibility,
+    };
 }
 
 /// Represents a set of debug entities or all of them.
@@ -18,7 +20,7 @@ pub enum RapierDebugEntities {
     All,
     Colliders,
     Positions,
-    Path
+    Path,
 }
 
 /// Event Used to toggle the visibility of a particular set of debug entities.

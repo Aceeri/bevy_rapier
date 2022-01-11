@@ -1,9 +1,13 @@
+/*
+
 mod visibility;
 pub use self::visibility::toggle_visibility;
+ */
 
 mod collider;
 pub use self::collider::spawn_debug_colliders;
 
+/*
 mod render_pass;
 pub use self::render_pass::toggle_render_pass;
 
@@ -15,3 +19,4 @@ pub use self::path::{
 
 mod position;
 pub use self::position::spawn_debug_positions;
+ */

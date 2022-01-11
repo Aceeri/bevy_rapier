@@ -114,7 +114,9 @@ pub fn setup_physics(mut commands: Commands) {
     commands
         .spawn_bundle(rigid_body)
         .insert_bundle(collider)
-        .insert(RapierDebugCollider { color: Color::VIOLET })
+        .insert(RapierDebugCollider {
+            color: Color::VIOLET,
+        })
         .insert(ColliderPositionSync::Discrete);
 
     /*
@@ -134,7 +136,9 @@ pub fn setup_physics(mut commands: Commands) {
     commands
         .spawn_bundle(rigid_body)
         .insert_bundle(collider)
-        .insert(RapierDebugCollider { color: Color::BLACK })
+        .insert(RapierDebugCollider {
+            color: Color::BLACK,
+        })
         .insert(RapierDebugPosition::default())
         .insert(RapierDebugPath::default())
         .insert(ColliderPositionSync::Discrete);

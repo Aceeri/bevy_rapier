@@ -138,7 +138,8 @@ pub fn setup_physics(mut commands: Commands) {
 
                 let sync = ColliderPositionSync::Discrete;
 
-                commands.spawn_bundle(rigid_body)
+                commands
+                    .spawn_bundle(rigid_body)
                     .insert(RapierDebugPosition::default())
                     .with_children(|parent| {
                         parent

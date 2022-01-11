@@ -1,22 +1,31 @@
-use bevy::prelude::*;
 use crate::prelude::*;
 use crate::render::prelude::*;
-use crate::render::render::WireframeMaterial;
+use bevy::prelude::*;
+use bevy_polyline::{Polyline, PolylineBundle, PolylineMaterial};
 
-/// Spawn newly added debug colliders.
+/// Recreate added/changed collider shapes/types/etc.
 pub fn spawn_debug_colliders(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
+    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
     config: Res<RapierConfiguration>,
-    mut materials: ResMut<Assets<WireframeMaterial>>,
+    mut polylines: ResMut<Assets<Polyline>>,
     query: Query<
         (
-            Entity, &ColliderShape, &ColliderType, &RapierDebugCollider, &ColliderPosition,
-            Option<&RigidBodyPositionSync>, Option<&ColliderPositionSync>,
-            Option<&RigidBodyPosition>
+            Entity,
+            &ColliderShapeComponent,
+            &ColliderTypeComponent,
+            &RapierDebugCollider,
+            &ColliderPositionComponent,
+            Option<&RigidBodyPositionSync>,
+            Option<&ColliderPositionSync>,
+            Option<&RigidBodyPositionComponent>,
         ),
-        Without<RapierDebugColliderLoaded>
-    >
+        (Or<(
+            Changed<RapierDebugCollider>,
+            Changed<ColliderShapeComponent>,
+            Changed<ColliderTypeComponent>,
+        )>),
+    >,
 ) {
     for (entity, shape, ty, debug, co_pos, rb_sync, co_sync, rb_pos) in query.iter() {
         let transform = {
@@ -32,29 +41,43 @@ pub fn spawn_debug_colliders(
                 collider_transform(co_pos)
             }
         };
-        commands.entity(entity)
-            .insert(RapierDebugColliderLoaded)
-            .insert(Visible { is_visible: true, is_transparent: true })
-            .with_children(|parent| {
-                if let Some(collider_meshes) = collider_to_mesh(shape, &config) {
-                    for collider_mesh in collider_meshes {
-                        parent.spawn()
-                            .insert(Name::new("Hilt Collider"))
-                            .insert(RapierDebugRenderCollider)
-                            .insert_bundle(RapierDebugColliderWireframeBundle {
-                                mesh: meshes.add(collider_mesh.mesh),
-                                material: materials.add(crate::render::render::WireframeMaterial {
-                                    color: debug.color,
-                                    //dashed: ty == &ColliderType::Sensor,
-                                    dashed: false,
-                                }),
-                                global_transform: GlobalTransform::from(transform),
-                                transform,
+
+        commands.entity(entity).with_children(|parent| {
+            if let Some(collider_polylines) = collider_to_polyline(shape) {
+                for collider_polyline in collider_polylines {
+                    let scaled_vertices: Vec<Vec3> = collider_polyline
+                        .vertices
+                        .iter()
+                        .map(|vertex| {
+                            Vec3::new(
+                                vertex.x * config.scale,
+                                vertex.y * config.scale,
+                                vertex.z * config.scale,
+                            )
+                        })
+                        .collect();
+
+                    parent
+                        .spawn()
+                        .insert(Name::new("Debug Collider"))
+                        .insert(RapierDebugRenderCollider)
+                        .insert_bundle(PolylineBundle {
+                            polyline: polylines.add(Polyline {
+                                vertices: scaled_vertices,
+                            }),
+                            material: polyline_materials.add(PolylineMaterial {
+                                width: 100.0,
+                                color: Color::RED,
+                                perspective: true,
                                 ..Default::default()
-                            });
-                    }
+                            }),
+                            ..Default::default()
+                        })
+                        .insert(transform)
+                        .insert(GlobalTransform::from(transform));
                 }
-            });
+            }
+        });
     }
 }
 
@@ -67,16 +90,14 @@ fn collider_transform(co_pos: &ColliderPosition) -> Transform {
 
 #[cfg(feature = "dim2")]
 fn collider_transform(co_pos: &ColliderPosition) -> Transform {
-    Transform::from_xyz(
-        co_pos.translation.x,
-        co_pos.translation.y,
-        1.0
-    )
+    Transform::from_xyz(co_pos.translation.x, co_pos.translation.y, 1.0)
 }
 
 #[cfg(feature = "dim3")]
 fn rigid_body_transform(rb_pos: &RigidBodyPosition, co_pos: &ColliderPosition) -> Transform {
-    let mut co_transform = Transform::from_translation(Vec3::from(co_pos.translation) - Vec3::from(rb_pos.position.translation));
+    let mut co_transform = Transform::from_translation(
+        Vec3::from(co_pos.translation) - Vec3::from(rb_pos.position.translation),
+    );
     co_transform.rotation = Quat::from(co_pos.rotation);
     co_transform
 }
@@ -89,36 +110,39 @@ fn rigid_body_transform(rb_pos: &RigidBodyPosition, co_pos: &ColliderPosition) -
 
 pub struct ColliderFound {
     isometry: Option<Isometry<Real>>,
-    mesh: Mesh,
+    vertices: Vec<Vec3>,
 }
 
 impl ColliderFound {
-    pub fn from(mesh: Mesh) -> ColliderFound {
+    pub fn from(vertices: Vec<Vec3>) -> ColliderFound {
         Self {
             isometry: None,
-            mesh: mesh,
+            vertices: vertices,
         }
     }
 }
 
-fn collider_to_mesh(shape: &ColliderShape, config: &RapierConfiguration) -> Option<Vec<ColliderFound>> {
+fn collider_to_polyline(shape: &ColliderShape) -> Option<Vec<ColliderFound>> {
     let mut found = Vec::new();
     match shape.shape_type() {
+        ShapeType::Capsule => {
+            let capsule = shape.as_capsule().unwrap();
+            found.push(ColliderFound::from(crate::render::mesh::wire_capsule(
+                capsule,
+            )));
+        }
         ShapeType::Cuboid => {
             let cuboid = shape.as_cuboid().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_cube(cuboid, config)));
-        },
+            found.push(ColliderFound::from(crate::render::mesh::wire_cube(cuboid)));
+        }
         ShapeType::Ball => {
             let ball = shape.as_ball().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_sphere(ball.radius * config.scale)));
+            found.push(ColliderFound::from(crate::render::mesh::wire_sphere(ball.radius)));
         },
+        /*
         ShapeType::TriMesh => {
             let trimesh = shape.as_trimesh().unwrap();
             found.push(ColliderFound::from(crate::render::mesh::wire_trimesh(trimesh)));
-        },
-        ShapeType::Capsule => {
-            let capsule = shape.as_capsule().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_capsule(capsule, config)));
         },
         ShapeType::Polyline => {
             let polyline = shape.as_polyline().unwrap();
@@ -153,7 +177,7 @@ fn collider_to_mesh(shape: &ColliderShape, config: &RapierConfiguration) -> Opti
                     found.extend(inner_found);
                 }
             }
-        }
+        } */
         ty => {
             warn!("Unable to render collider shape type: {:?}", ty);
         }

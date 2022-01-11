@@ -128,7 +128,9 @@ pub fn setup_physics(mut commands: Commands) {
     };
     commands
         .spawn_bundle(collider)
-        .insert(RapierDebugCollider { color: Color::GREEN })
+        .insert(RapierDebugCollider {
+            color: Color::GREEN,
+        })
         .insert(ColliderPositionSync::Discrete)
         .insert(CustomFilterTag::GroupA);
 
@@ -169,11 +171,14 @@ pub fn setup_physics(mut commands: Commands) {
             };
             let mut entity = commands.spawn_bundle(body);
 
-            entity.insert_bundle(collider)
+            entity
+                .insert_bundle(collider)
                 .insert(ColliderPositionSync::Discrete)
                 .insert(CustomFilterTag::with_id(i + j));
             if (i + j) % 2 == 0 {
-                entity.insert(RapierDebugCollider { color: Color::GREEN });
+                entity.insert(RapierDebugCollider {
+                    color: Color::GREEN,
+                });
             } else {
                 entity.insert(RapierDebugCollider { color: Color::RED });
             }

@@ -1,6 +1,8 @@
 use bevy::prelude::*;
-use bevy::render::camera::{Camera, VisibleEntities};
-
+use bevy::render::camera::Camera;
+use bevy::render::primitives::Frustum;
+use bevy::render::view::VisibleEntities;
+/*
 /// Perspective Camera for use in the rapier_debug render pass.
 /// Simple copy of PerspectiveCameraBundle but with the appropriate name for use in the
 /// rapier_debug render pass.
@@ -13,6 +15,7 @@ pub struct RapierDebugPerspectiveCameraBundle {
     pub visible_entities: VisibleEntities,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+    pub frustum: Frustum,
 }
 
 impl Default for RapierDebugPerspectiveCameraBundle {
@@ -23,13 +26,15 @@ impl Default for RapierDebugPerspectiveCameraBundle {
             visible_entities,
             transform,
             global_transform,
-        } = PerspectiveCameraBundle::with_name(&crate::render::render::CAMERA_RAPIER_DEBUG.to_string());
+            frustum,
+        } = PerspectiveCameraBundle::with_name("test");
         Self {
             camera,
             perspective_projection,
             visible_entities,
             transform,
             global_transform,
+            frustum,
         }
     }
 }
@@ -46,6 +51,7 @@ pub struct RapierDebugOrthographicCameraBundle {
     pub visible_entities: VisibleEntities,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
+    pub frustum: Frustum,
 }
 
 impl Default for RapierDebugOrthographicCameraBundle {
@@ -56,13 +62,16 @@ impl Default for RapierDebugOrthographicCameraBundle {
             visible_entities,
             transform,
             global_transform,
-        } = OrthographicCameraBundle::with_name(&crate::render::render::CAMERA_RAPIER_DEBUG.to_string());
+            frustum,
+        } = OrthographicCameraBundle::with_name("test");
         Self {
             camera,
             orthographic_projection,
             visible_entities,
             transform,
             global_transform,
+            frustum,
         }
     }
 }
+ */

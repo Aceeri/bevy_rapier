@@ -66,14 +66,14 @@ fn setup_graphics(mut commands: Commands) {
         )),
         ..Default::default()
     });
-    commands.spawn_bundle(RapierDebugPerspectiveCameraBundle {
+    /*     commands.spawn_bundle(RapierDebugPerspectiveCameraBundle {
         transform: Transform::from_matrix(Mat4::face_toward(
             Vec3::new(-30.0, 30.0, 100.0),
             Vec3::new(0.0, 10.0, 0.0),
             Vec3::new(0.0, 1.0, 0.0),
         )),
         ..Default::default()
-    });
+    }); */
 }
 
 pub fn setup_physics(mut commands: Commands) {
@@ -126,7 +126,8 @@ pub fn setup_physics(mut commands: Commands) {
                 };
 
                 let mut entity = commands.spawn_bundle(rigid_body);
-                entity.insert_bundle(collider)
+                entity
+                    .insert_bundle(collider)
                     .insert(ColliderPositionSync::Discrete);
                 if j % 2 == 0 {
                     entity.insert(RapierDebugCollider { color: Color::BLUE });

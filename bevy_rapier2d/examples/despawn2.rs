@@ -143,7 +143,8 @@ pub fn setup_physics(
                 ..Default::default()
             };
             let mut entity = commands.spawn_bundle(body);
-            entity.insert_bundle(collider)
+            entity
+                .insert_bundle(collider)
                 .insert(ColliderPositionSync::Discrete);
 
             if (i + j) % 2 == 0 {

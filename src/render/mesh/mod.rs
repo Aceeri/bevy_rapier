@@ -4,13 +4,14 @@ pub use self::cube::wire_cube;
 mod sphere;
 pub use self::sphere::wire_sphere;
 
+/*
 mod trimesh;
-pub use self::trimesh::wire_trimesh;
+pub use self::trimesh::wire_trimesh; */
 
 mod capsule;
 pub use self::capsule::wire_capsule;
 
-mod polyline;
+/* mod polyline;
 pub use self::polyline::wire_polyline;
 
 mod segment;
@@ -23,14 +24,13 @@ pub use self::cylinder::wire_cylinder;
 
 mod convex_mesh;
 #[cfg(feature = "dim3")]
-pub use self::convex_mesh::wire_convex_mesh;
+pub use self::convex_mesh::wire_convex_mesh; */
 
-use bevy::prelude::*;
-use bevy::render::pipeline::PrimitiveTopology;
-use bevy::render::mesh::Indices;
 use crate::prelude::*;
+use bevy::prelude::*;
+use bevy::render::mesh::Indices;
 
-#[cfg(feature = "dim3")]
+/* #[cfg(feature = "dim3")]
 pub fn position_mesh(debug: &crate::render::entities::RapierDebugPosition, _config: &RapierConfiguration) -> bevy::prelude::Mesh {
         let half_size = debug.size/2.0;
         let mut mesh = Mesh::new(PrimitiveTopology::LineList);
@@ -84,3 +84,5 @@ pub fn position_mesh(debug: &super::entities::RapierDebugPosition, config: &Rapi
         mesh.set_indices(Some(Indices::U16(vec![0, 1, 2, 3])));
         mesh
 }
+ */
+

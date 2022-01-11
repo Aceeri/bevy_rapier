@@ -182,7 +182,9 @@ fn create_revolute_joints(commands: &mut Commands, origin: Point3<f32>, num: usi
             handles[k] = commands
                 .spawn_bundle(rigid_body)
                 .insert_bundle(collider)
-                .insert(RapierDebugCollider { color: Color::ORANGE })
+                .insert(RapierDebugCollider {
+                    color: Color::ORANGE,
+                })
                 .insert(ColliderPositionSync::Discrete)
                 .id();
         }
@@ -241,7 +243,9 @@ fn create_fixed_joints(commands: &mut Commands, origin: Point3<f32>, num: usize)
             let child_entity = commands
                 .spawn_bundle(rigid_body)
                 .insert_bundle(collider)
-                .insert(RapierDebugCollider { color: Color::VIOLET })
+                .insert(RapierDebugCollider {
+                    color: Color::VIOLET,
+                })
                 .insert(ColliderPositionSync::Discrete)
                 .id();
 

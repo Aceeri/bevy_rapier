@@ -98,7 +98,9 @@ pub fn setup_physics(mut commands: Commands, mut despawn: ResMut<DespawnResource
         .spawn()
         .insert_bundle(collider)
         .insert(ColliderPositionSync::Discrete)
-        .insert(RapierDebugCollider { color: Color::GREEN })
+        .insert(RapierDebugCollider {
+            color: Color::GREEN,
+        })
         .id();
     despawn.entity = Some(ground_entity);
     /*
@@ -131,7 +133,8 @@ pub fn setup_physics(mut commands: Commands, mut despawn: ResMut<DespawnResource
                     ..ColliderBundle::default()
                 };
                 let mut entity = commands.spawn_bundle(rigid_body);
-                entity.insert_bundle(collider)
+                entity
+                    .insert_bundle(collider)
                     .insert(ColliderPositionSync::Discrete);
                 if j % 2 == 0 {
                     entity.insert(RapierDebugCollider { color: Color::BLUE });
