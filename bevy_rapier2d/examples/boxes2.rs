@@ -46,10 +46,12 @@ fn setup_graphics(mut commands: Commands, mut configuration: ResMut<RapierConfig
         ..Default::default()
     });
     commands.spawn_bundle(camera);
+    /*
     commands.spawn_bundle(RapierDebugOrthographicCameraBundle {
         transform: Transform::from_xyz(0.0, 200.0, 0.0),
         ..Default::default()
     });
+    */
 }
 
 pub fn setup_physics(mut commands: Commands) {

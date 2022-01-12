@@ -1,8 +1,8 @@
-use bevy::prelude::*;
 use crate::prelude::*;
+use bevy::prelude::*;
+use wgpu_types::PrimitiveTopology;
 
 pub fn wire_cylinder(cylinder: &Cylinder, config: &RapierConfiguration) -> Mesh {
-    use bevy::render::pipeline::PrimitiveTopology;
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(16 * 2);
     let mut indices: Vec<u16> = Vec::with_capacity(16 * 2 * 2 + 2 * 4);
 
@@ -42,7 +42,7 @@ pub fn wire_cylinder(cylinder: &Cylinder, config: &RapierConfiguration) -> Mesh 
     indices.push(12);
     indices.push(16 + 12);
 
-    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
     mesh.set_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     mesh.set_indices(Some(bevy::render::mesh::Indices::U16(indices)));
     mesh

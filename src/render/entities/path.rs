@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_polyline::{Polyline, PolylineMaterial};
 
 /*
 /// Path Bundle using the correct material to display the path

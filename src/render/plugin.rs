@@ -1,5 +1,8 @@
+use bevy::pbr::PbrPlugin;
 use bevy::prelude::*;
-use bevy_polyline::{Polyline, PolylinePlugin};
+use bevy::render::options::WgpuOptions;
+use bevy_stylized_wireframe::*;
+use wgpu_types::Features;
 
 use crate::render::systems::spawn_debug_colliders;
 
@@ -12,9 +15,16 @@ impl Plugin for RapierDebugPlugin {
 
         app.add_system(spawn_debug_colliders.label("rapier_debug_material_setup"));
 
+        //app.add_plugin(PbrPlugin);
+        app.add_plugin(StylizedWireframePlugin);
+        app.add_plugin(SimpleWireframePlugin);
+
+        /*
         if !app.world.contains_resource::<Assets<Polyline>>() {
             app.add_plugin(PolylinePlugin);
         }
+        */
+
         //.add_asset::<crate::render::render::WireframeMaterial>()
         //.add_asset::<crate::render::render::PositionWireframeMaterial>()
         //.add_event::<crate::render::RapierDebugToggleRenderPass>()

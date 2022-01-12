@@ -34,7 +34,10 @@ nalgebra = { version = "0.30.1", features = [ "convert-glam020" ] }
 # Don't enable the default features because we don't need the ColliderSet/RigidBodySet
 rapier3d = { version = "^0.12.0-alpha.0", default-features = false, features = [ "dim3", "f32" ] }
 bevy_polyline = { git = "https://github.com/aevyrie/bevy_poly_line", branch = "bevy-main" }
+bevy_stylized_wireframe = { git = "https://github.com/aceeri/bevy_stylized_wireframe", branch = "main" }
+wgpu-types = "0.12"
 
 [dev-dependencies]
 #bevy_wgpu = "0.5"
 #bevy_winit = { version = "0.5", features = [ "x11" ] }
+bevy = { git = "https://github.com/bevyengine/bevy", branch = "main" }

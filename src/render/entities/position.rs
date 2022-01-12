@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_polyline::{Polyline, PolylineMaterial};
 
 /// Represents the size of the position gizmo.
 /// **NOTE**: This is intended for internal/advanced use only.

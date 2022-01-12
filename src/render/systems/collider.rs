@@ -1,14 +1,19 @@
 use crate::prelude::*;
 use crate::render::prelude::*;
 use bevy::prelude::*;
-use bevy_polyline::{Polyline, PolylineBundle, PolylineMaterial};
+use bevy_stylized_wireframe::prelude::*;
+//use bevy_mesh::{Polyline, PolylineBundle, PolylineMaterial};
+
+pub struct DebugColliderMaterial {
+    pub wireframe: bool,
+}
 
 /// Recreate added/changed collider shapes/types/etc.
 pub fn spawn_debug_colliders(
     mut commands: Commands,
-    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     config: Res<RapierConfiguration>,
-    mut polylines: ResMut<Assets<Polyline>>,
+    mut meshes: ResMut<Assets<Mesh>>,
     query: Query<
         (
             Entity,
@@ -43,38 +48,26 @@ pub fn spawn_debug_colliders(
         };
 
         commands.entity(entity).with_children(|parent| {
-            if let Some(collider_polylines) = collider_to_polyline(shape) {
-                for collider_polyline in collider_polylines {
-                    let scaled_vertices: Vec<Vec3> = collider_polyline
-                        .vertices
-                        .iter()
-                        .map(|vertex| {
-                            Vec3::new(
-                                vertex.x * config.scale,
-                                vertex.y * config.scale,
-                                vertex.z * config.scale,
-                            )
-                        })
-                        .collect();
+            if let Some(collider_meshs) = collider_to_mesh(shape, &config) {
+                for mut found in collider_meshs {
+                    // We duplicate vertices and remove indices so there
+                    // aren't any shared vertices that would mess with
+                    // barycentric coordinates.
+                    found.mesh.duplicate_vertices();
+                    found.mesh.compute_barycentric();
 
                     parent
                         .spawn()
                         .insert(Name::new("Debug Collider"))
                         .insert(RapierDebugRenderCollider)
-                        .insert_bundle(PolylineBundle {
-                            polyline: polylines.add(Polyline {
-                                vertices: scaled_vertices,
-                            }),
-                            material: polyline_materials.add(PolylineMaterial {
-                                width: 100.0,
-                                color: Color::RED,
-                                perspective: true,
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        })
+                        .insert(SimpleWireframe::default())
+                        //.insert(StylizedWireframe::default())
+                        //.insert(ColoredWireframe)
+                        .insert(meshes.add(found.mesh))
                         .insert(transform)
-                        .insert(GlobalTransform::from(transform));
+                        .insert(GlobalTransform::from(transform))
+                        .insert(Visibility::default())
+                        .insert(ComputedVisibility::default());
                 }
             }
         });
@@ -110,58 +103,76 @@ fn rigid_body_transform(rb_pos: &RigidBodyPosition, co_pos: &ColliderPosition) -
 
 pub struct ColliderFound {
     isometry: Option<Isometry<Real>>,
-    vertices: Vec<Vec3>,
+    mesh: Mesh,
 }
 
 impl ColliderFound {
-    pub fn from(vertices: Vec<Vec3>) -> ColliderFound {
+    pub fn from(mesh: Mesh) -> ColliderFound {
         Self {
             isometry: None,
-            vertices: vertices,
+            mesh: mesh,
         }
     }
 }
 
-fn collider_to_polyline(shape: &ColliderShape) -> Option<Vec<ColliderFound>> {
+fn collider_to_mesh(
+    shape: &ColliderShape,
+    config: &RapierConfiguration,
+) -> Option<Vec<ColliderFound>> {
     let mut found = Vec::new();
     match shape.shape_type() {
         ShapeType::Capsule => {
             let capsule = shape.as_capsule().unwrap();
             found.push(ColliderFound::from(crate::render::mesh::wire_capsule(
-                capsule,
+                capsule, config,
             )));
         }
         ShapeType::Cuboid => {
             let cuboid = shape.as_cuboid().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_cube(cuboid)));
+            found.push(ColliderFound::from(crate::render::mesh::wire_cube(
+                cuboid, config,
+            )));
         }
         ShapeType::Ball => {
             let ball = shape.as_ball().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_sphere(ball.radius)));
-        },
-        /*
+            found.push(ColliderFound::from(crate::render::mesh::wire_sphere(
+                ball.radius,
+                config,
+            )));
+        }
         ShapeType::TriMesh => {
             let trimesh = shape.as_trimesh().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_trimesh(trimesh)));
-        },
+            found.push(ColliderFound::from(crate::render::mesh::wire_trimesh(
+                trimesh, config,
+            )));
+        }
         ShapeType::Polyline => {
             let polyline = shape.as_polyline().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_polyline(polyline)));
-        },
+            found.push(ColliderFound::from(crate::render::mesh::wire_polyline(
+                polyline, config,
+            )));
+        }
         ShapeType::Segment => {
             let segment = shape.as_segment().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_segment(segment)));
-        },
+            found.push(ColliderFound::from(crate::render::mesh::wire_segment(
+                segment, config,
+            )));
+        }
         #[cfg(feature = "dim3")]
         ShapeType::Cylinder => {
             let cylinder = shape.as_cylinder().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_cylinder(cylinder, config)));
-        },
+            found.push(ColliderFound::from(crate::render::mesh::wire_cylinder(
+                cylinder, config,
+            )));
+        }
         #[cfg(feature = "dim3")]
         ShapeType::ConvexPolyhedron => {
             let convex_mesh = shape.as_convex_polyhedron().unwrap();
-            found.push(ColliderFound::from(crate::render::mesh::wire_convex_mesh(convex_mesh)));
-        },
+            found.push(ColliderFound::from(crate::render::mesh::wire_convex_mesh(
+                convex_mesh,
+                config,
+            )));
+        }
         ShapeType::Compound => {
             let compound = shape.as_compound().unwrap();
             for (isometry, shape) in compound.shapes() {
@@ -177,7 +188,7 @@ fn collider_to_polyline(shape: &ColliderShape) -> Option<Vec<ColliderFound>> {
                     found.extend(inner_found);
                 }
             }
-        } */
+        }
         ty => {
             warn!("Unable to render collider shape type: {:?}", ty);
         }
