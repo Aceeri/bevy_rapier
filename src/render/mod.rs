@@ -8,9 +8,10 @@ pub use self::plugin::RapierDebugPlugin;
 
 pub mod prelude {
     pub use crate::render::entities::*;
+    pub use crate::render::entities::RapierDebugCollider;
     pub use crate::render::{
         RapierDebugEntities, RapierDebugPlugin, RapierDebugToggleRenderPass,
-        RapierDebugToggleVisibility,
+        RapierDebugToggleVisibility
     };
 }
 

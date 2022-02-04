@@ -1,6 +1,6 @@
 extern crate rapier3d as rapier; // For the debug UI.
 
-use bevy::prelude::*;
+use bevy::{prelude::*, pbr::PbrPlugin};
 use bevy_rapier3d::prelude::*;
 
 use rapier::geometry::ColliderShape;
@@ -13,14 +13,15 @@ mod ui;
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(
-            0xF9 as f32 / 255.0,
-            0xF9 as f32 / 255.0,
-            0xFF as f32 / 255.0,
+            0xAE as f32 / 255.0,
+            0xC6 as f32 / 255.0,
+            0xCF as f32 / 255.0,
         )))
         .insert_resource(Msaa::default())
         .add_plugins(DefaultPlugins)
         .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugin(RapierDebugPlugin)
+        .add_plugin(PbrPlugin)
         .add_plugin(DebugUiPlugin)
         .add_startup_system(setup_graphics.system())
         .add_startup_system(setup_physics.system())
@@ -60,9 +61,9 @@ fn setup_graphics(mut commands: Commands) {
     });
     commands.spawn_bundle(PerspectiveCameraBundle {
         transform: Transform::from_matrix(Mat4::face_toward(
-            Vec3::new(-30.0, 30.0, 100.0),
-            Vec3::new(0.0, 10.0, 0.0),
-            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, 20.0, 50.0),
+            Vec3::new(-15.0, 10.0, -15.0),
+            Vec3::Y,
         )),
         ..Default::default()
     });

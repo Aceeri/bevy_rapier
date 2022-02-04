@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::render::prelude::*;
+use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy_stylized_wireframe::prelude::*;
 //use bevy_mesh::{Polyline, PolylineBundle, PolylineMaterial};
@@ -63,9 +64,12 @@ pub fn spawn_debug_colliders(
                         .insert(SimpleWireframe::default())
                         //.insert(StylizedWireframe::default())
                         //.insert(ColoredWireframe)
+                        //.insert(materials.add(StandardMaterial::default()))
                         .insert(meshes.add(found.mesh))
                         .insert(transform)
                         .insert(GlobalTransform::from(transform))
+                        .insert(NotShadowCaster)
+                        .insert(NotShadowReceiver)
                         .insert(Visibility::default())
                         .insert(ComputedVisibility::default());
                 }
@@ -168,6 +172,7 @@ fn collider_to_mesh(
         #[cfg(feature = "dim3")]
         ShapeType::ConvexPolyhedron => {
             let convex_mesh = shape.as_convex_polyhedron().unwrap();
+            dbg!();
             found.push(ColliderFound::from(crate::render::mesh::wire_convex_mesh(
                 convex_mesh,
                 config,

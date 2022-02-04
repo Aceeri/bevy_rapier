@@ -66,6 +66,7 @@ fn setup_graphics(mut commands: Commands) {
         )),
         ..Default::default()
     });
+    /*
     commands.spawn_bundle(RapierDebugPerspectiveCameraBundle {
         transform: Transform::from_matrix(Mat4::face_toward(
             Vec3::new(0.0, 0.0, 25.0),
@@ -74,6 +75,7 @@ fn setup_graphics(mut commands: Commands) {
         )),
         ..Default::default()
     });
+    */
 }
 
 fn display_events(
