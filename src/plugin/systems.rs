@@ -114,41 +114,58 @@ pub fn apply_scale(
     }
 }
 
+fn named_entity<'a>(names: &'a Query<&Name>, entity: Entity) -> Box<dyn std::fmt::Debug + 'a> {
+    match names.get(entity) {
+        Ok(name) => Box::new(name),
+        _ => Box::new(entity),
+    }
+}
+
 /// System responsible for applying changes the user made to a collider-related component.
 pub fn apply_collider_user_changes(
     config: Res<RapierConfiguration>,
     mut context: ResMut<RapierContext>,
     changed_collider_transforms: Query<
-        (&RapierColliderHandle, &GlobalTransform),
+        (Entity, &RapierColliderHandle, &GlobalTransform),
         (Without<RapierRigidBodyHandle>, Changed<GlobalTransform>),
     >,
-    changed_shapes: Query<(&RapierColliderHandle, &Collider), Changed<Collider>>,
-    changed_active_events: Query<(&RapierColliderHandle, &ActiveEvents), Changed<ActiveEvents>>,
-    changed_active_hooks: Query<(&RapierColliderHandle, &ActiveHooks), Changed<ActiveHooks>>,
+    changed_shapes: Query<(Entity, &RapierColliderHandle, &Collider), Changed<Collider>>,
+    changed_active_events: Query<
+        (Entity, &RapierColliderHandle, &ActiveEvents),
+        Changed<ActiveEvents>,
+    >,
+    changed_active_hooks: Query<
+        (Entity, &RapierColliderHandle, &ActiveHooks),
+        Changed<ActiveHooks>,
+    >,
     changed_active_collision_types: Query<
-        (&RapierColliderHandle, &ActiveCollisionTypes),
+        (Entity, &RapierColliderHandle, &ActiveCollisionTypes),
         Changed<ActiveCollisionTypes>,
     >,
-    changed_friction: Query<(&RapierColliderHandle, &Friction), Changed<Friction>>,
-    changed_restitution: Query<(&RapierColliderHandle, &Restitution), Changed<Restitution>>,
+    changed_friction: Query<(Entity, &RapierColliderHandle, &Friction), Changed<Friction>>,
+    changed_restitution: Query<(Entity, &RapierColliderHandle, &Restitution), Changed<Restitution>>,
     changed_collision_groups: Query<
-        (&RapierColliderHandle, &CollisionGroups),
+        (Entity, &RapierColliderHandle, &CollisionGroups),
         Changed<CollisionGroups>,
     >,
-    changed_solver_groups: Query<(&RapierColliderHandle, &SolverGroups), Changed<SolverGroups>>,
-    changed_sensors: Query<(&RapierColliderHandle, &Sensor), Changed<Sensor>>,
+    changed_solver_groups: Query<
+        (Entity, &RapierColliderHandle, &SolverGroups),
+        Changed<SolverGroups>,
+    >,
+    changed_sensors: Query<(Entity, &RapierColliderHandle, &Sensor), Changed<Sensor>>,
     changed_contact_force_threshold: Query<
-        (&RapierColliderHandle, &ContactForceEventThreshold),
+        (Entity, &RapierColliderHandle, &ContactForceEventThreshold),
         Changed<ContactForceEventThreshold>,
     >,
     changed_collider_mass_props: Query<
-        (&RapierColliderHandle, &ColliderMassProperties),
+        (Entity, &RapierColliderHandle, &ColliderMassProperties),
         Changed<ColliderMassProperties>,
     >,
+    names: Query<&Name>,
 ) {
     let scale = context.physics_scale;
 
-    for (handle, transform) in changed_collider_transforms.iter() {
+    for (entity, handle, transform) in changed_collider_transforms.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             if co.parent().is_none() {
                 co.set_position(utils::transform_to_iso(
@@ -156,74 +173,129 @@ pub fn apply_collider_user_changes(
                     scale,
                 ))
             }
+        } else {
+            warn!(
+                "Changed collider transform for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, shape) in changed_shapes.iter() {
+    for (entity, handle, shape) in changed_shapes.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             let mut scaled_shape = shape.clone();
             scaled_shape.set_scale(shape.scale / scale, config.scaled_shape_subdivision);
             co.set_shape(scaled_shape.raw.clone())
+        } else {
+            warn!(
+                "Changed collider shape for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, active_events) in changed_active_events.iter() {
+    for (entity, handle, active_events) in changed_active_events.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_active_events((*active_events).into())
+        } else {
+            warn!(
+                "Changed collider active events for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, active_hooks) in changed_active_hooks.iter() {
+    for (entity, handle, active_hooks) in changed_active_hooks.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_active_hooks((*active_hooks).into())
+        } else {
+            warn!(
+                "Changed collider active hooks for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, active_collision_types) in changed_active_collision_types.iter() {
+    for (entity, handle, active_collision_types) in changed_active_collision_types.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_active_collision_types((*active_collision_types).into())
+        } else {
+            warn!(
+                "Changed collider active collision types for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, friction) in changed_friction.iter() {
+    for (entity, handle, friction) in changed_friction.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_friction(friction.coefficient);
             co.set_friction_combine_rule(friction.combine_rule.into());
+        } else {
+            warn!(
+                "Changed collider friction for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, restitution) in changed_restitution.iter() {
+    for (entity, handle, restitution) in changed_restitution.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_restitution(restitution.coefficient);
             co.set_restitution_combine_rule(restitution.combine_rule.into());
+        } else {
+            warn!(
+                "Changed collider restitution for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, collision_groups) in changed_collision_groups.iter() {
+    for (entity, handle, collision_groups) in changed_collision_groups.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_collision_groups((*collision_groups).into());
+        } else {
+            warn!(
+                "Changed collider groups for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, solver_groups) in changed_solver_groups.iter() {
+    for (entity, handle, solver_groups) in changed_solver_groups.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_solver_groups((*solver_groups).into());
+        } else {
+            warn!(
+                "Changed collider solver groups for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, _) in changed_sensors.iter() {
+    for (entity, handle, _) in changed_sensors.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_sensor(true);
+        } else {
+            warn!(
+                "Changed collider sensor for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, threshold) in changed_contact_force_threshold.iter() {
+    for (entity, handle, threshold) in changed_contact_force_threshold.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             co.set_contact_force_event_threshold(threshold.0);
+        } else {
+            warn!(
+                "Changed collider contact force event for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 
-    for (handle, mprops) in changed_collider_mass_props.iter() {
+    for (entity, handle, mprops) in changed_collider_mass_props.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             match mprops {
                 ColliderMassProperties::Density(density) => co.set_density(*density),
@@ -232,6 +304,11 @@ pub fn apply_collider_user_changes(
                     co.set_mass_properties(mprops.into_rapier(scale))
                 }
             }
+        } else {
+            warn!(
+                "Changed collider mass properties for non-existent collider on {:?}",
+                named_entity(&names, entity)
+            );
         }
     }
 }
@@ -255,7 +332,10 @@ pub fn apply_rigid_body_user_changes(
     >,
     changed_locked_axes: Query<(&RapierRigidBodyHandle, &LockedAxes), Changed<LockedAxes>>,
     changed_forces: Query<(&RapierRigidBodyHandle, &ExternalForce), Changed<ExternalForce>>,
-    changed_impulses: Query<(&RapierRigidBodyHandle, &ExternalImpulse), Changed<ExternalImpulse>>,
+    mut changed_impulses: Query<
+        (&RapierRigidBodyHandle, &mut ExternalImpulse),
+        Changed<ExternalImpulse>,
+    >,
     changed_gravity_scale: Query<(&RapierRigidBodyHandle, &GravityScale), Changed<GravityScale>>,
     changed_ccd: Query<(&RapierRigidBodyHandle, &Ccd), Changed<Ccd>>,
     changed_dominance: Query<(&RapierRigidBodyHandle, &Dominance), Changed<Dominance>>,
@@ -389,11 +469,12 @@ pub fn apply_rigid_body_user_changes(
         }
     }
 
-    for (handle, impulses) in changed_impulses.iter() {
+    for (handle, mut impulses) in &mut changed_impulses {
         if let Some(rb) = context.bodies.get_mut(handle.0) {
             rb.apply_impulse((impulses.impulse / scale).into(), true);
             #[allow(clippy::useless_conversion)] // Need to convert if dim3 enabled
             rb.apply_torque_impulse(impulses.torque_impulse.into(), true);
+            impulses.reset();
         }
     }
 
@@ -936,12 +1017,12 @@ pub fn apply_initial_rigid_body_impulses(
     mut context: ResMut<RapierContext>,
     // We can’t use RapierRigidBodyHandle yet because its creation command hasn’t been
     // executed yet.
-    init_impulses: Query<(Entity, &ExternalImpulse), Without<RapierRigidBodyHandle>>,
+    mut init_impulses: Query<(Entity, &mut ExternalImpulse), Without<RapierRigidBodyHandle>>,
 ) {
     let context = &mut *context;
     let scale = context.physics_scale;
 
-    for (entity, impulse) in init_impulses.iter() {
+    for (entity, mut impulse) in &mut init_impulses {
         let bodies = &mut context.bodies;
         if let Some(rb) = context
             .entity2body
@@ -955,6 +1036,8 @@ pub fn apply_initial_rigid_body_impulses(
 
             #[allow(clippy::useless_conversion)] // Need to convert if dim3 enabled
             rb.apply_torque_impulse(impulse.torque_impulse.into(), false);
+
+            impulse.reset();
         }
     }
 }
