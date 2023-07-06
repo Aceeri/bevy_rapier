@@ -164,6 +164,10 @@ where
             .register_type::<Velocity>()
             .register_type::<AdditionalMassProperties>()
             .register_type::<MassProperties>()
+            .register_type::<ReadMassProperties>()
+            .register_type::<ColliderMassProperties>()
+            .register_type::<ColliderDisabled>()
+            .register_type::<RigidBodyDisabled>()
             .register_type::<LockedAxes>()
             .register_type::<ExternalForce>()
             .register_type::<ExternalImpulse>()
@@ -177,6 +181,7 @@ where
             .register_type::<Friction>()
             .register_type::<Restitution>()
             .register_type::<CollisionGroups>()
+            .register_type::<ColliderParent>()
             .register_type::<SolverGroups>()
             .register_type::<ContactForceEventThreshold>()
             .register_type::<Group>();
