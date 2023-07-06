@@ -15,11 +15,12 @@ use crate::pipeline::{CollisionEvent, ContactForceEvent};
 use crate::plugin::configuration::{SimulationToRenderTime, TimestepMode};
 use crate::plugin::{RapierConfiguration, RapierContext};
 use crate::prelude::{
-    BevyPhysicsHooks, BevyPhysicsHooksAdapter, CollidingEntities, KinematicCharacterController,
-    KinematicCharacterControllerOutput, RigidBodyDisabled, ColliderParent,
+    BevyPhysicsHooks, BevyPhysicsHooksAdapter, ColliderParent, CollidingEntities,
+    KinematicCharacterController, KinematicCharacterControllerOutput, RigidBodyDisabled,
 };
 use crate::utils;
 use bevy::ecs::system::{StaticSystemParam, SystemParamItem};
+use bevy::hierarchy::HierarchyEvent;
 use bevy::prelude::*;
 use rapier::prelude::*;
 use std::collections::HashMap;
@@ -117,6 +118,81 @@ pub fn apply_scale(
     }
 }
 
+/// System responsible for detecting changes in the hierarchy that would
+/// affect the collider's parent rigid body.
+pub fn collect_collider_hierarchy_changes(
+    mut commands: Commands,
+
+    mut hierarchy_events: EventReader<HierarchyEvent>,
+    parents: Query<&Parent>,
+    childrens: Query<&Children>,
+    rigid_bodies: Query<&RigidBody>,
+    colliders: Query<&Collider>,
+    mut collider_parents: Query<&mut ColliderParent>,
+) {
+    let child_colliders = |entity: Entity| -> Vec<Entity> {
+        let mut found = Vec::new();
+        let mut possibilities = vec![entity];
+        while let Some(entity) = possibilities.pop() {
+            if rigid_bodies.contains(entity) {
+                continue;
+            }
+
+            if colliders.contains(entity) {
+                found.push(entity);
+            }
+
+            if let Ok(children) = childrens.get(entity) {
+                possibilities.extend(children.iter());
+            } else {
+                continue;
+            };
+        }
+
+        found
+    };
+
+    let parent_rigid_body = |mut entity: Entity| -> Option<Entity> {
+        loop {
+            if rigid_bodies.contains(entity) {
+                return Some(entity);
+            }
+
+            if let Ok(parent) = parents.get(entity) {
+                entity = parent.get();
+            } else {
+                return None;
+            }
+        }
+    };
+
+    for event in hierarchy_events.iter() {
+        match event {
+            HierarchyEvent::ChildAdded { child, .. } | HierarchyEvent::ChildMoved { child, .. } => {
+                let colliders = child_colliders(*child);
+                let Some(rigid_body) = parent_rigid_body(*child) else { continue };
+
+                for collider in colliders {
+                    let new_collider_parent = ColliderParent(rigid_body);
+                    if let Ok(mut collider_parent) = collider_parents.get_mut(collider) {
+                        *collider_parent = new_collider_parent;
+                    } else {
+                        commands.entity(collider).insert(new_collider_parent);
+                    }
+                }
+            }
+            HierarchyEvent::ChildRemoved { child, .. } => {
+                let colliders = child_colliders(*child);
+                for collider in colliders {
+                    if collider_parents.contains(collider) {
+                        commands.entity(collider).remove::<ColliderParent>();
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// System responsible for applying changes the user made to a collider-related component.
 pub fn apply_collider_user_changes(
     config: Res<RapierConfiguration>,
@@ -125,6 +201,7 @@ pub fn apply_collider_user_changes(
         (&RapierColliderHandle, &GlobalTransform),
         (Without<RapierRigidBodyHandle>, Changed<GlobalTransform>),
     >,
+    changed_collider_parents: Query<(&RapierColliderHandle, &ColliderParent), Changed<ColliderParent>>,
     changed_shapes: Query<(&RapierColliderHandle, &Collider), Changed<Collider>>,
     changed_active_events: Query<(&RapierColliderHandle, &ActiveEvents), Changed<ActiveEvents>>,
     changed_active_hooks: Query<(&RapierColliderHandle, &ActiveHooks), Changed<ActiveHooks>>,
@@ -160,6 +237,17 @@ pub fn apply_collider_user_changes(
                     scale,
                 ))
             }
+        }
+    }
+
+    for (handle, collider_parent) in changed_collider_parents.iter() {
+        if let Some(body_handle) = context.entity2body.get(&collider_parent.0).copied() {
+            let RapierContext {
+                ref mut colliders,
+                ref mut bodies,
+                ..
+            } = *context;
+            colliders.set_parent(handle.0, Some(body_handle), bodies);
         }
     }
 
@@ -1092,6 +1180,7 @@ pub fn sync_removals(
     mut removed_sensors: RemovedComponents<Sensor>,
     mut removed_rigid_body_disabled: RemovedComponents<RigidBodyDisabled>,
     mut removed_colliders_disabled: RemovedComponents<ColliderDisabled>,
+    mut removed_collider_parents: RemovedComponents<ColliderParent>,
 ) {
     /*
      * Rigid-bodies removal detection.
@@ -1207,6 +1296,17 @@ pub fn sync_removals(
             if let Some(rb) = context.bodies.get_mut(*handle) {
                 rb.set_enabled(true);
             }
+        }
+    }
+
+    for entity in removed_collider_parents.iter() {
+        if let Some(handle) = context.entity2collider.get(&entity) {
+            let RapierContext {
+                ref mut colliders,
+                ref mut bodies,
+                ..
+            } = *context;
+            colliders.set_parent(*handle, None, bodies);
         }
     }
 
