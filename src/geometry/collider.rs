@@ -3,13 +3,13 @@ use std::fmt;
 #[cfg(all(feature = "dim3", feature = "async-collider"))]
 use {crate::geometry::VHACDParameters, bevy::utils::HashMap};
 
+use bevy::ecs::{
+    entity::{EntityMap, MapEntities, MapEntitiesError},
+    reflect::ReflectMapEntities,
+};
 use bevy::prelude::*;
 use bevy::reflect::FromReflect;
 use bevy::utils::HashSet;
-use bevy::ecs::{
-    entity::{MapEntities, EntityMap, MapEntitiesError},
-    reflect::ReflectMapEntities,
-};
 
 use rapier::geometry::Shape;
 use rapier::prelude::{ColliderHandle, InteractionGroups, SharedShape};
@@ -508,7 +508,6 @@ pub struct ColliderDisabled;
 #[derive(Component, Debug, Eq, PartialEq, Reflect)]
 #[reflect(Component, MapEntities, PartialEq)]
 pub struct ColliderParent(pub(crate) Entity);
-
 
 impl ColliderParent {
     /// Gets the [`Entity`] ID of the rigid-body parent of the collider.

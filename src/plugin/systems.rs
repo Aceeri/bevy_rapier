@@ -16,7 +16,7 @@ use crate::plugin::configuration::{SimulationToRenderTime, TimestepMode};
 use crate::plugin::{RapierConfiguration, RapierContext};
 use crate::prelude::{
     BevyPhysicsHooks, BevyPhysicsHooksAdapter, CollidingEntities, KinematicCharacterController,
-    KinematicCharacterControllerOutput, RigidBodyDisabled,
+    KinematicCharacterControllerOutput, RigidBodyDisabled, ColliderParent,
 };
 use crate::utils;
 use bevy::ecs::system::{StaticSystemParam, SystemParamItem};
@@ -844,6 +844,8 @@ pub fn init_colliders(
                 context
                     .colliders
                     .insert_with_parent(builder, body_handle, &mut context.bodies);
+            commands.entity(entity).insert(ColliderParent(body_entity));
+
             if let Ok(mut mprops) = rigid_body_mprops.get_mut(body_entity) {
                 // Inserting the collider changed the rigid-body’s mass properties.
                 // Read them back from the engine.
@@ -865,6 +867,7 @@ pub fn init_colliders(
         };
 
         commands.entity(entity).insert(RapierColliderHandle(handle));
+
         context.entity2collider.insert(entity, handle);
     }
 }
