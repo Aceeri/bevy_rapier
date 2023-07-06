@@ -201,7 +201,10 @@ pub fn apply_collider_user_changes(
         (&RapierColliderHandle, &GlobalTransform),
         (Without<RapierRigidBodyHandle>, Changed<GlobalTransform>),
     >,
-    changed_collider_parents: Query<(&RapierColliderHandle, &ColliderParent), Changed<ColliderParent>>,
+    changed_collider_parents: Query<
+        (&RapierColliderHandle, &ColliderParent),
+        Changed<ColliderParent>,
+    >,
     changed_shapes: Query<(&RapierColliderHandle, &Collider), Changed<Collider>>,
     changed_active_events: Query<(&RapierColliderHandle, &ActiveEvents), Changed<ActiveEvents>>,
     changed_active_hooks: Query<(&RapierColliderHandle, &ActiveHooks), Changed<ActiveHooks>>,
