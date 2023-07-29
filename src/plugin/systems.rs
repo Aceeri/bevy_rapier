@@ -16,8 +16,9 @@ use crate::plugin::configuration::{SimulationToRenderTime, TimestepMode};
 use crate::plugin::{RapierConfiguration, RapierContext};
 use crate::prelude::{
     BevyPhysicsHooks, BevyPhysicsHooksAdapter, CollidingEntities, KinematicCharacterController,
-    KinematicCharacterControllerOutput, RigidBodyDisabled, Vect,
+    KinematicCharacterControllerOutput, RigidBodyDisabled, Rot, Vect,
 };
+use crate::parry;
 use crate::utils;
 use bevy::ecs::system::{StaticSystemParam, SystemParamItem};
 use bevy::prelude::*;
@@ -79,7 +80,76 @@ pub type ColliderComponents<'a> = (
     Option<&'a ColliderDisabled>,
 );
 
-/// System responsible for applying [`GlobalTransform::scale`] and/or [`ColliderScale`] to
+#[derive(Component)]
+pub struct Isometry {
+    pub translation: Vect,
+    pub rotation: Rot,
+}
+
+impl Isometry {
+    #[cfg(feature = "dim3")]
+    pub fn into_rapier(&self, physics_scale: f32) -> rapier::math::Isometry<Real> {
+        rapier::math::Isometry {
+            translation: (self.translation / physics_scale).into(),
+            rotation: self.rotation.into(),
+        }
+    }
+
+    #[cfg(feature = "dim2")]
+    pub fn into_rapier(&self, physics_scale: f32) -> rapier::math::Isometry<Real> {
+        rapier::math::Isometry::new(
+            (self.translation / physics_scale).into(),
+            self.rotation,
+        )
+    }
+}
+
+#[derive(Component)]
+pub struct Scale(pub Vect);
+
+pub fn apply_isometry_scale_user_changes(
+    changed_transforms: Query<Entity, Changed<Transform>>,
+    transforms: Query<&Transform>,
+    isometries: Query<&Isometry>,
+    scales: Query<&Scale>,
+    childrens: Query<&Children>,
+) {
+    for entity in &changed_transforms {
+        let Ok(transform) = transforms.get(entity) else { continue };
+        if let Ok(children) = childrens.get(entity) {
+            for child in children {
+                let Ok(child_transform) = transforms.get(entity) else { continue };
+
+                if let Ok(mut isometry) = isometries.get_mut(*child) {
+                    *isometry = Isometry {
+                        #[cfg(feature = "dim3")]
+                        translation: child_transform.translation,
+                        #[cfg(feature = "dim3")]
+                        rotation: child_transform.rotation,
+
+                        #[cfg(feature = "dim2")]
+                        translation: child_transform.translation.truncate(),
+                        #[cfg(feature = "dim2")]
+                        rotation: child_transform.rotation.to_scaled_axis().z,
+                    };
+                }
+
+                if let Ok(mut scale) = scales.get_mut(*child) {
+                    #[cfg(feature = "dim3")]
+                    {
+                        *scale = Scale(transform.scale * child_transform.scale);
+                    }
+                    #[cfg(feature = "dim2")]
+                    {
+                        *scale = Scale(transform.scale.xy() * child_transform.scale.xy());
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// System responsible for applying [`Scale`] and/or [`ColliderScale`] to
 /// colliders.
 pub fn apply_scale(
     mut context: ResMut<RapierContext>,
@@ -88,44 +158,24 @@ pub fn apply_scale(
         (
             &mut Collider,
             &RapierColliderHandle,
-            &GlobalTransform,
+            &Isometry,
+            &Scale,
             Option<&ColliderScale>,
         ),
-        Or<(
-            Changed<Collider>,
-            Changed<GlobalTransform>,
-            Changed<ColliderScale>,
-        )>,
+        Or<(Changed<Collider>, Changed<Scale>, Changed<ColliderScale>)>,
     >,
 ) {
     // NOTE: we don’t have to apply the RapierConfiguration::physics_scale here because
     //       we are applying the scale to the user-facing shape here, not the ones inside
     //       colliders (yet).
-    for (mut shape, handle, transform, custom_scale) in changed_collider_scales.iter_mut() {
-        #[cfg(feature = "dim2")]
+    for (mut shape, handle, isometry, scale, custom_scale) in changed_collider_scales.iter_mut() {
         let effective_scale = match custom_scale {
-            Some(ColliderScale::Absolute(scale)) => *scale,
-            Some(ColliderScale::Relative(scale)) => {
-                *scale * transform.compute_transform().scale.xy()
-            }
-            None => transform.compute_transform().scale.xy(),
-        };
-        #[cfg(feature = "dim3")]
-        let effective_scale = match custom_scale {
-            Some(ColliderScale::Absolute(scale)) => *scale,
-            Some(ColliderScale::Relative(scale)) => *scale * transform.compute_transform().scale,
-            None => transform.compute_transform().scale,
+            Some(ColliderScale::Absolute(custom_scale)) => *custom_scale,
+            Some(ColliderScale::Relative(custom_scale)) => *custom_scale * scale.0,
+            None => scale.0,
         };
 
         if shape.scale != crate::geometry::get_snapped_scale(effective_scale) {
-            if let Some(co) = context.colliders.get_mut(handle.0) {
-                if let Some(position) = co.position_wrt_parent() {
-                    let translation: Vect = position.translation.vector.into();
-                    let unscaled_translation: Vect = translation / shape.scale();
-                    let new_translation = unscaled_translation * effective_scale;
-                    co.set_translation_wrt_parent(new_translation.into());
-                }
-            }
             shape.set_scale(effective_scale, config.scaled_shape_subdivision);
         }
     }
@@ -136,8 +186,8 @@ pub fn apply_collider_user_changes(
     config: Res<RapierConfiguration>,
     mut context: ResMut<RapierContext>,
     changed_collider_transforms: Query<
-        (&RapierColliderHandle, &GlobalTransform),
-        (Without<RapierRigidBodyHandle>, Changed<GlobalTransform>),
+        (&RapierColliderHandle, &Isometry, &Scale),
+        (Without<RapierRigidBodyHandle>, Changed<Isometry>, Changed<Scale>),
     >,
 
     changed_shapes: Query<(&RapierColliderHandle, &Collider), Changed<Collider>>,
@@ -167,13 +217,12 @@ pub fn apply_collider_user_changes(
 ) {
     let scale = context.physics_scale;
 
-    for (handle, transform) in changed_collider_transforms.iter() {
+    for (handle, isometry, collider_scale) in changed_collider_transforms.iter() {
         if let Some(co) = context.colliders.get_mut(handle.0) {
             if co.parent().is_none() {
-                co.set_position(utils::transform_to_iso(
-                    &transform.compute_transform(),
-                    scale,
-                ))
+                co.set_position(isometry.into_rapier(scale));
+            } else {
+                co.set_position_wrt_parent(isometry.into_rapier(scale));
             }
         }
     }
@@ -269,7 +318,7 @@ pub fn apply_rigid_body_user_changes(
     mut changed_transforms: Query<
         (
             &RapierRigidBodyHandle,
-            &GlobalTransform,
+            &Isometry,
             Option<&mut TransformInterpolation>,
         ),
         Changed<GlobalTransform>,
@@ -326,36 +375,9 @@ pub fn apply_rigid_body_user_changes(
         }
     }
 
-    // Manually checks if the transform changed.
-    // This is needed for detecting if the user actually changed the rigid-body
-    // transform, or if it was just the change we made in our `writeback_rigid_bodies`
-    // system.
-    let transform_changed_fn =
-        |handle: &RigidBodyHandle,
-         transform: &GlobalTransform,
-         last_transform_set: &HashMap<RigidBodyHandle, GlobalTransform>| {
-            if config.force_update_from_transform_changes {
-                true
-            } else if let Some(prev) = last_transform_set.get(handle) {
-                *prev != *transform
-            } else {
-                true
-            }
-        };
-
-    for (handle, global_transform, mut interpolation) in changed_transforms.iter_mut() {
-        // Use an Option<bool> to avoid running the check twice.
-        let mut transform_changed = None;
-
+    for (handle, isometry, mut interpolation) in changed_transforms.iter_mut() {
+        /*
         if let Some(interpolation) = interpolation.as_deref_mut() {
-            transform_changed = transform_changed.or_else(|| {
-                Some(transform_changed_fn(
-                    &handle.0,
-                    global_transform,
-                    &context.last_body_transform_set,
-                ))
-            });
-
             if transform_changed == Some(true) {
                 // Reset the interpolation so we don’t overwrite
                 // the user’s input.
@@ -363,38 +385,14 @@ pub fn apply_rigid_body_user_changes(
                 interpolation.end = None;
             }
         }
-
+ */
         if let Some(rb) = context.bodies.get_mut(handle.0) {
-            transform_changed = transform_changed.or_else(|| {
-                Some(transform_changed_fn(
-                    &handle.0,
-                    global_transform,
-                    &context.last_body_transform_set,
-                ))
-            });
-
             match rb.body_type() {
                 RigidBodyType::KinematicPositionBased => {
-                    if transform_changed == Some(true) {
-                        rb.set_next_kinematic_position(utils::transform_to_iso(
-                            &global_transform.compute_transform(),
-                            scale,
-                        ));
-                        context
-                            .last_body_transform_set
-                            .insert(handle.0, *global_transform);
-                    }
+                    rb.set_next_kinematic_position(isometry.into_rapier(scale));
                 }
                 _ => {
-                    if transform_changed == Some(true) {
-                        rb.set_position(
-                            utils::transform_to_iso(&global_transform.compute_transform(), scale),
-                            true,
-                        );
-                        context
-                            .last_body_transform_set
-                            .insert(handle.0, *global_transform);
-                    }
+                    rb.set_position(isometry.into_rapier(scale), true);
                 }
             }
         }
