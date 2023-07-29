@@ -1239,6 +1239,7 @@ pub fn sync_removals(
 /// Adds entity to [`CollidingEntities`] on starting collision and removes from it when the
 /// collision ends.
 pub fn update_colliding_entities(
+    ctx: Res<RapierContext>,
     mut collision_events: EventReader<CollisionEvent>,
     mut colliding_entities: Query<&mut CollidingEntities>,
 ) {
@@ -1248,16 +1249,38 @@ pub fn update_colliding_entities(
                 if let Ok(mut entities) = colliding_entities.get_mut(entity1) {
                     entities.0.insert(entity2);
                 }
+                if let Some(body) = ctx.collider_parent(entity1) {
+                    if let Ok(mut entities) = colliding_entities.get_mut(body) {
+                        entities.0.insert(entity2);
+                    }
+                }
+
                 if let Ok(mut entities) = colliding_entities.get_mut(entity2) {
                     entities.0.insert(entity1);
+                }
+                if let Some(body) = ctx.collider_parent(entity2) {
+                    if let Ok(mut entities) = colliding_entities.get_mut(body) {
+                        entities.0.insert(entity1);
+                    }
                 }
             }
             CollisionEvent::Stopped(entity1, entity2, _) => {
                 if let Ok(mut entities) = colliding_entities.get_mut(entity1) {
                     entities.0.remove(&entity2);
                 }
+                if let Some(body) = ctx.collider_parent(entity1) {
+                    if let Ok(mut entities) = colliding_entities.get_mut(body) {
+                        entities.0.remove(&entity2);
+                    }
+                }
+
                 if let Ok(mut entities) = colliding_entities.get_mut(entity2) {
                     entities.0.remove(&entity1);
+                }
+                if let Some(body) = ctx.collider_parent(entity2) {
+                    if let Ok(mut entities) = colliding_entities.get_mut(body) {
+                        entities.0.remove(&entity1);
+                    }
                 }
             }
         }
