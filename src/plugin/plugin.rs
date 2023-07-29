@@ -77,6 +77,7 @@ where
                 systems::apply_collider_user_changes.after(systems::apply_scale),
                 systems::apply_rigid_body_user_changes.after(systems::apply_collider_user_changes),
                 systems::apply_joint_user_changes.after(systems::apply_rigid_body_user_changes),
+                systems::apply_isometry_scale_user_changes,
                 systems::init_rigid_bodies.after(systems::apply_joint_user_changes),
                 systems::init_colliders
                     .after(systems::init_rigid_bodies)
@@ -106,6 +107,7 @@ where
             PhysicsSet::Writeback => (
                 systems::update_colliding_entities,
                 systems::writeback_rigid_bodies,
+                systems::update_transform,
             )
                 .into_configs(),
         }

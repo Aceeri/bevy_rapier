@@ -11,6 +11,7 @@ use crate::geometry::{
     ColliderMassProperties, ColliderScale, CollisionGroups, ContactForceEventThreshold, Friction,
     RapierColliderHandle, Restitution, Sensor, SolverGroups,
 };
+use crate::parry;
 use crate::pipeline::{CollisionEvent, ContactForceEvent};
 use crate::plugin::configuration::{SimulationToRenderTime, TimestepMode};
 use crate::plugin::{RapierConfiguration, RapierContext};
@@ -18,7 +19,6 @@ use crate::prelude::{
     BevyPhysicsHooks, BevyPhysicsHooksAdapter, CollidingEntities, KinematicCharacterController,
     KinematicCharacterControllerOutput, RigidBodyDisabled, Rot, Vect,
 };
-use crate::parry;
 use crate::utils;
 use bevy::ecs::system::{StaticSystemParam, SystemParamItem};
 use bevy::prelude::*;
@@ -39,8 +39,7 @@ use bevy::math::Vec3Swizzles;
 pub type RigidBodyWritebackComponents<'a> = (
     Entity,
     Option<&'a Parent>,
-    Option<&'a mut Transform>,
-    Option<&'a mut TransformInterpolation>,
+    Option<&'a mut Isometry>,
     Option<&'a mut Velocity>,
     Option<&'a mut Sleeping>,
 );
@@ -80,13 +79,27 @@ pub type ColliderComponents<'a> = (
     Option<&'a ColliderDisabled>,
 );
 
-#[derive(Component)]
+#[derive(Component, PartialEq, Default)]
 pub struct Isometry {
     pub translation: Vect,
     pub rotation: Rot,
 }
 
 impl Isometry {
+    pub fn from_transform(transform: &Transform) -> Self {
+        Self {
+            #[cfg(feature = "dim3")]
+            translation: transform.translation,
+            #[cfg(feature = "dim3")]
+            rotation: transform.rotation,
+
+            #[cfg(feature = "dim2")]
+            translation: transform.translation.xy() * transform.scale.xy(),
+            #[cfg(feature = "dim2")]
+            rotation: transform.rotation.to_scaled_axis().z,
+        }
+    }
+
     #[cfg(feature = "dim3")]
     pub fn into_rapier(&self, physics_scale: f32) -> rapier::math::Isometry<Real> {
         rapier::math::Isometry {
@@ -97,25 +110,57 @@ impl Isometry {
 
     #[cfg(feature = "dim2")]
     pub fn into_rapier(&self, physics_scale: f32) -> rapier::math::Isometry<Real> {
-        rapier::math::Isometry::new(
-            (self.translation / physics_scale).into(),
-            self.rotation,
-        )
+        rapier::math::Isometry::new((self.translation / physics_scale).into(), self.rotation)
+    }
+
+    #[cfg(feature = "dim3")]
+    pub fn from_rapier(iso: &rapier::math::Isometry<Real>, physics_scale: f32) -> Self {
+        Isometry {
+            translation: (iso.translation.vector * physics_scale).into(),
+            rotation: iso.rotation.into(),
+        }
+    }
+
+    #[cfg(feature = "dim2")]
+    pub fn from_rapier(iso: &rapier::math::Isometry<Real>, physics_scale: f32) -> Self {
+        Isometry {
+            translation: (iso.translation.vector * physics_scale).into(),
+            rotation: iso.rotation.angle(),
+        }
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Scale(pub Vect);
 
 pub fn apply_isometry_scale_user_changes(
     changed_transforms: Query<Entity, Changed<Transform>>,
     transforms: Query<&Transform>,
-    isometries: Query<&Isometry>,
-    scales: Query<&Scale>,
+    mut isometries: Query<&mut Isometry>,
+    mut scales: Query<&mut Scale>,
     childrens: Query<&Children>,
 ) {
     for entity in &changed_transforms {
         let Ok(transform) = transforms.get(entity) else { continue };
+        info!("test");
+
+        if let Ok(mut isometry) = isometries.get_mut(entity) {
+            *isometry = Isometry::from_transform(transform);
+        }
+
+            if let Ok(mut scale) = scales.get_mut(entity) {
+                #[cfg(feature = "dim3")]
+                {
+                    *scale = Scale(transform.scale);
+                }
+                #[cfg(feature = "dim2")]
+                {
+                    *scale = Scale(transform.scale.xy());
+                }
+
+                info!("scale: {:?}", scale.0);
+            }
+
         if let Ok(children) = childrens.get(entity) {
             for child in children {
                 let Ok(child_transform) = transforms.get(entity) else { continue };
@@ -123,12 +168,16 @@ pub fn apply_isometry_scale_user_changes(
                 if let Ok(mut isometry) = isometries.get_mut(*child) {
                     *isometry = Isometry {
                         #[cfg(feature = "dim3")]
-                        translation: child_transform.translation,
+                        translation: child_transform.translation
+                            * transform.scale
+                            * child_transform.scale,
                         #[cfg(feature = "dim3")]
                         rotation: child_transform.rotation,
 
                         #[cfg(feature = "dim2")]
-                        translation: child_transform.translation.truncate(),
+                        translation: child_transform.translation.xy()
+                            * transform.scale.xy()
+                            * child_transform.scale.xy(),
                         #[cfg(feature = "dim2")]
                         rotation: child_transform.rotation.to_scaled_axis().z,
                     };
@@ -143,6 +192,8 @@ pub fn apply_isometry_scale_user_changes(
                     {
                         *scale = Scale(transform.scale.xy() * child_transform.scale.xy());
                     }
+
+                    info!("scale: {:?}", scale.0);
                 }
             }
         }
@@ -158,7 +209,6 @@ pub fn apply_scale(
         (
             &mut Collider,
             &RapierColliderHandle,
-            &Isometry,
             &Scale,
             Option<&ColliderScale>,
         ),
@@ -168,7 +218,7 @@ pub fn apply_scale(
     // NOTE: we don’t have to apply the RapierConfiguration::physics_scale here because
     //       we are applying the scale to the user-facing shape here, not the ones inside
     //       colliders (yet).
-    for (mut shape, handle, isometry, scale, custom_scale) in changed_collider_scales.iter_mut() {
+    for (mut shape, handle, scale, custom_scale) in changed_collider_scales.iter_mut() {
         let effective_scale = match custom_scale {
             Some(ColliderScale::Absolute(custom_scale)) => *custom_scale,
             Some(ColliderScale::Relative(custom_scale)) => *custom_scale * scale.0,
@@ -187,7 +237,11 @@ pub fn apply_collider_user_changes(
     mut context: ResMut<RapierContext>,
     changed_collider_transforms: Query<
         (&RapierColliderHandle, &Isometry, &Scale),
-        (Without<RapierRigidBodyHandle>, Changed<Isometry>, Changed<Scale>),
+        (
+            Without<RapierRigidBodyHandle>,
+            Changed<Isometry>,
+            Changed<Scale>,
+        ),
     >,
 
     changed_shapes: Query<(&RapierColliderHandle, &Collider), Changed<Collider>>,
@@ -377,15 +431,15 @@ pub fn apply_rigid_body_user_changes(
 
     for (handle, isometry, mut interpolation) in changed_transforms.iter_mut() {
         /*
-        if let Some(interpolation) = interpolation.as_deref_mut() {
-            if transform_changed == Some(true) {
-                // Reset the interpolation so we don’t overwrite
-                // the user’s input.
-                interpolation.start = None;
-                interpolation.end = None;
-            }
-        }
- */
+               if let Some(interpolation) = interpolation.as_deref_mut() {
+                   if transform_changed == Some(true) {
+                       // Reset the interpolation so we don’t overwrite
+                       // the user’s input.
+                       interpolation.start = None;
+                       interpolation.end = None;
+                   }
+               }
+        */
         if let Some(rb) = context.bodies.get_mut(handle.0) {
             match rb.body_type() {
                 RigidBodyType::KinematicPositionBased => {
@@ -508,13 +562,32 @@ pub fn apply_joint_user_changes(
     }
 }
 
+pub fn update_transform(
+    mut changed_isometries: Query<(&Isometry, &mut Transform), Changed<Isometry>>,
+    global_transforms: Query<&GlobalTransform>,
+) {
+    for (isometry, mut transform) in &mut changed_isometries {
+        #[cfg(feature = "dim3")]
+        {
+            transform.translation = isometry.translation;
+            transform.rotation = isometry.rotation;
+        }
+
+        #[cfg(feature = "dim2")]
+        {
+            transform.translation.x = isometry.translation.x;
+            transform.translation.y = isometry.translation.y;
+            transform.rotation = Quat::from_rotation_z(isometry.rotation);
+        }
+    }
+}
+
 /// System responsible for writing the result of the last simulation step into our `bevy_rapier`
-/// components and the [`GlobalTransform`] component.
+/// components.
 pub fn writeback_rigid_bodies(
     mut context: ResMut<RapierContext>,
     config: Res<RapierConfiguration>,
     sim_to_render_time: Res<SimulationToRenderTime>,
-    global_transforms: Query<&GlobalTransform>,
     mut writeback: Query<
         RigidBodyWritebackComponents,
         (With<RigidBody>, Without<RigidBodyDisabled>),
@@ -524,9 +597,7 @@ pub fn writeback_rigid_bodies(
     let scale = context.physics_scale;
 
     if config.physics_pipeline_active {
-        for (entity, parent, transform, mut interpolation, mut velocity, mut sleeping) in
-            writeback.iter_mut()
-        {
+        for (entity, parent, isometry, mut velocity, mut sleeping) in writeback.iter_mut() {
             // TODO: do this the other way round: iterate through Rapier’s RigidBodySet on the active bodies,
             // and update the components accordingly. That way, we don’t have to iterate through the entities that weren’t changed
             // by physics (for example because they are sleeping).
@@ -534,93 +605,11 @@ pub fn writeback_rigid_bodies(
                 if let Some(rb) = context.bodies.get(handle) {
                     let mut interpolated_pos = utils::iso_to_transform(rb.position(), scale);
 
-                    if let TimestepMode::Interpolated { dt, .. } = config.timestep_mode {
-                        if let Some(interpolation) = interpolation.as_deref_mut() {
-                            if interpolation.end.is_none() {
-                                interpolation.end = Some(*rb.position());
-                            }
+                    if let Some(mut isometry) = isometry {
+                        let new_isometry = Isometry::from_rapier(rb.position(), scale);
 
-                            if let Some(interpolated) =
-                                interpolation.lerp_slerp((dt + sim_to_render_time.diff) / dt)
-                            {
-                                interpolated_pos = utils::iso_to_transform(&interpolated, scale);
-                            }
-                        }
-                    }
-
-                    if let Some(mut transform) = transform {
-                        // NOTE: we query the parent’s global transform here, which is a bit
-                        //       unfortunate (performance-wise). An alternative would be to
-                        //       deduce the parent’s global transform from the current entity’s
-                        //       global transform. However, this makes it nearly impossible
-                        //       (because of rounding errors) to predict the exact next value this
-                        //       entity’s global transform will get after the next transform
-                        //       propagation, which breaks our transform modification detection
-                        //       that we do to detect if the user’s transform has to be written
-                        //       into the rigid-body.
-                        if let Some(parent_global_transform) =
-                            parent.and_then(|p| global_transforms.get(**p).ok())
-                        {
-                            // We need to compute the new local transform such that:
-                            // curr_parent_global_transform * new_transform = interpolated_pos
-                            // new_transform = curr_parent_global_transform.inverse() * interpolated_pos
-                            let (_, inverse_parent_rotation, inverse_parent_translation) =
-                                parent_global_transform
-                                    .affine()
-                                    .inverse()
-                                    .to_scale_rotation_translation();
-                            let new_rotation = inverse_parent_rotation * interpolated_pos.rotation;
-
-                            #[allow(unused_mut)] // mut is needed in 2D but not in 3D.
-                            let mut new_translation = inverse_parent_rotation
-                                * interpolated_pos.translation
-                                + inverse_parent_translation;
-
-                            // In 2D, preserve the transform `z` component that may have been set by the user
-                            #[cfg(feature = "dim2")]
-                            {
-                                new_translation.z = transform.translation.z;
-                            }
-
-                            if transform.rotation != new_rotation
-                                || transform.translation != new_translation
-                            {
-                                // NOTE: we write the new value only if there was an
-                                //       actual change, in order to not trigger bevy’s
-                                //       change tracking when the values didn’t change.
-                                transform.rotation = new_rotation;
-                                transform.translation = new_translation;
-                            }
-
-                            // NOTE: we need to compute the result of the next transform propagation
-                            //       to make sure that our change detection for transforms is exact
-                            //       despite rounding errors.
-                            let new_global_transform =
-                                parent_global_transform.mul_transform(*transform);
-
-                            context
-                                .last_body_transform_set
-                                .insert(handle, new_global_transform);
-                        } else {
-                            // In 2D, preserve the transform `z` component that may have been set by the user
-                            #[cfg(feature = "dim2")]
-                            {
-                                interpolated_pos.translation.z = transform.translation.z;
-                            }
-
-                            if transform.rotation != interpolated_pos.rotation
-                                || transform.translation != interpolated_pos.translation
-                            {
-                                // NOTE: we write the new value only if there was an
-                                //       actual change, in order to not trigger bevy’s
-                                //       change tracking when the values didn’t change.
-                                transform.rotation = interpolated_pos.rotation;
-                                transform.translation = interpolated_pos.translation;
-                            }
-
-                            context
-                                .last_body_transform_set
-                                .insert(handle, GlobalTransform::from(interpolated_pos));
+                        if *isometry != new_isometry {
+                            *isometry = new_isometry;
                         }
                     }
 
@@ -1313,7 +1302,7 @@ pub fn update_character_controls(
             let (character_shape, character_pos) = if let Some((scaled_shape, tra, rot)) =
                 &scaled_custom_shape
             {
-                let mut shape_pos: Isometry<Real> = (*tra, *rot).into();
+                let mut shape_pos: rapier::math::Isometry<Real> = (*tra, *rot).into();
 
                 if let Some(body) = body_handle.and_then(|h| context.bodies.get(h.0)) {
                     shape_pos = body.position() * shape_pos
