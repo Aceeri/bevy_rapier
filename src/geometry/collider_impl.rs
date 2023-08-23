@@ -6,12 +6,13 @@ use {
     bevy::render::mesh::{Indices, VertexAttributeValues},
 };
 
-use rapier::prelude::{FeatureId, Point, Ray, SharedShape, Vector, DIM};
+use rapier::prelude::{FeatureId, Point, Ray, SharedShape, Vector, DIM, ColliderMassProps};
 
 use super::{get_snapped_scale, shape_views::*};
 #[cfg(all(feature = "dim3", feature = "async-collider"))]
 use crate::geometry::ComputedColliderShape;
 use crate::geometry::{Collider, PointProjection, RayIntersection, TriMeshFlags, VHACDParameters};
+use crate::dynamics::MassProperties;
 use crate::math::{Real, Rot, Vect};
 
 impl Collider {
@@ -729,6 +730,25 @@ impl Collider {
 impl Default for Collider {
     fn default() -> Self {
         Self::ball(0.5)
+    }
+}
+
+impl ColliderMassProperties {
+    pub fn into_rapier(&self, physics_scale: f32) -> ColliderMassProps {
+        match mass_props {
+            ColliderMassProperties::Density(density) => ColliderMassProps::Density(density),
+            ColliderMassProperties::Mass(mass) => ColliderMassProps::Mass(mass),
+            ColliderMassProperties::MassProperties(mprops) => {
+                ColliderMassProps::MassProperties(mprops.into_rapier(scale))
+            }
+        }
+    }
+
+    /// Calculate mass properties 
+    pub fn mass_properties(&self, shape: &dyn Shape, physics_scale: f32) -> MassProperties {
+        let rapier_collider_mprops = self.into_rapier(physics_scale);
+        let rapier_mprops = rapier_collider_mprops.mass_properties(shape);
+        MassProperties::from_rapier(rapier_mprops, physics_scale)
     }
 }
 
