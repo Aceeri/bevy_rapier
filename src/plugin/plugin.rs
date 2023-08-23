@@ -87,6 +87,7 @@ where
                 )
                     .chain()
                     .in_set(RapierTransformPropagateSet),
+                systems::sync_removals,
                 #[cfg(all(feature = "dim3", feature = "async-collider"))]
                 systems::init_async_scene_colliders.after(bevy::scene::scene_spawner_system),
                 #[cfg(all(feature = "dim3", feature = "async-collider"))]
@@ -94,7 +95,6 @@ where
                 systems::init_rigid_bodies,
                 systems::init_colliders,
                 systems::init_joints,
-                systems::sync_removals,
                 // Run this here so the folowwing systems do not have a 1 frame delay.
                 apply_deferred,
                 systems::apply_scale,
